@@ -1,24 +1,27 @@
 package router
 
 import (
-	"net/http"
 	"socially-app/internal/config"
 	"socially-app/internal/handler"
+	"socially-app/internal/middleware"
 	logger "socially-app/internal/util"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func New(cfg *config.Config, log logger.ILogger) *http.Server {
-	r := mux.NewRouter()
+func New(cfg *config.Config, log logger.ILogger) *fiber.App {
+	app := fiber.New()
 
+	app.Use(middleware.LoggingMiddleware(log))
+
+	registrationHandler := handler.NewRegistrationHandler(log)
 	userHandler := handler.NewUserHandler(log)
 
-	r.HandleFunc("/users", userHandler.GetUsers).Methods("GET")
-	r.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
+	app.Post("/registration", registrationHandler.Registration)
+	app.Post("/registration/verify_otp", registrationHandler.VerifyOtp)
+	app.Post("/registration/complete", registrationHandler.CompleteRegistration)
 
-	return &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
-	}
+	app.Get("/users/check_username", userHandler.CheckUsername)
+
+	return app
 }

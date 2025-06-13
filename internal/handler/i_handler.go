@@ -1,8 +1,15 @@
 package handler
 
-import "net/http"
+import (
+	"github.com/gofiber/fiber/v2"
+)
+
+type IRegistrationHandler interface {
+	Registration(c *fiber.Ctx) error
+	VerifyOtp(c *fiber.Ctx) error
+	CompleteRegistration(c *fiber.Ctx) error
+}
 
 type IUserHandler interface {
-	GetUsers(w http.ResponseWriter, r *http.Request)
-	CreateUser(w http.ResponseWriter, r *http.Request)
+	CheckUsername(c *fiber.Ctx) error
 }

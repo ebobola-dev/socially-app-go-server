@@ -8,9 +8,11 @@ import (
 
 func main() {
 	cfg := config.Initialize()
-	log := logger.Create()
+	log := logger.Create(cfg)
 
-	r := router.New(cfg, log)
-	log.Info("Server running on port: " + cfg.Port)
-	log.Fatal(r.ListenAndServe())
+	app := router.New(cfg, log)
+	log.Info("Server running on port: %s\n", cfg.Port)
+	if err := app.Listen(":" + cfg.Port); err != nil {
+		log.Fatal(err)
+	}
 }

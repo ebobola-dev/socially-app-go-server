@@ -1,19 +1,30 @@
 package config
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port string
+	Port      string
+	BuildType BuildType
 }
 
 func Initialize() *Config {
 	_ = godotenv.Load()
+	btStr := _getEnv("BUILD_TYPE", "DEV")
+	buildType, err := ParseBuildType(btStr)
+
+	if err != nil {
+		log.Printf("Invalid BUILD_TYPE '%s', falling back to DEV\n", btStr)
+		buildType = Development
+	}
+
 	return &Config{
-		Port: _getEnv("PORT", "8080"),
+		Port:      _getEnv("PORT", "8080"),
+		BuildType: buildType,
 	}
 }
 
