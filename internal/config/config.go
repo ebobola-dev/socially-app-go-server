@@ -10,7 +10,7 @@ import (
 type Config struct {
 	Port      string
 	BuildType BuildType
-}
+} //
 
 func Initialize() *Config {
 	_ = godotenv.Load()
@@ -23,7 +23,7 @@ func Initialize() *Config {
 	}
 
 	return &Config{
-		Port:      _getEnv("PORT", "8080"),
+		Port:      _getEnv("INTERNAL_PORT", "8080"),
 		BuildType: buildType,
 	}
 }

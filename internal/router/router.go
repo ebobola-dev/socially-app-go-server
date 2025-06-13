@@ -15,7 +15,7 @@ func New(cfg *config.Config, log logger.ILogger) *fiber.App {
 	app.Use(middleware.LoggingMiddleware(log))
 
 	registrationHandler := handler.NewRegistrationHandler(log)
-	userHandler := handler.NewUserHandler(log)
+	userHandler := handler.NewUserHandler(log) //
 
 	app.Post("/registration", registrationHandler.Registration)
 	app.Post("/registration/verify_otp", registrationHandler.VerifyOtp)

@@ -29,7 +29,7 @@ func Create(cfg *config.Config) ILogger {
 		infoLogger:  log.New(os.Stdout, "", 0),
 		errorLogger: log.New(os.Stderr, "", 0),
 
-		debugColor: color.New(color.FgHiMagenta),
+		debugColor: color.New(color.FgWhite),
 		infoColor:  color.New(color.FgCyan),
 		warnColor:  color.New(color.FgYellow),
 		errorColor: color.New(color.FgRed),
@@ -38,7 +38,7 @@ func Create(cfg *config.Config) ILogger {
 }
 
 func timestamp() string {
-	return time.Now().UTC().Format("02.01 15:04:05")
+	return time.Now().Format("02.01 15:04:05")
 }
 
 func (l *MyLogger) Debug(format string, args ...any) {
@@ -46,7 +46,7 @@ func (l *MyLogger) Debug(format string, args ...any) {
 		msg := fmt.Sprintf(format, args...)
 		l.infoLogger.Println(l.debugColor.Sprintf("%s [DEBUG] %s", timestamp(), msg))
 	}
-}
+} //
 
 func (l *MyLogger) Info(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
@@ -67,4 +67,9 @@ func (l *MyLogger) Fatal(err error) {
 	stack := eris.ToString(err, true)
 	l.errorLogger.Println(l.fatalColor.Sprintf("%s [FATAL] %s", timestamp(), stack))
 	os.Exit(1)
+}
+
+func (l *MyLogger) PrintConfig(cfg *config.Config) {
+	l.infoLogger.Println(l.infoColor.Sprintf("%s [CONFIG] BUILD_TYPE: %s", timestamp(), cfg.BuildType.String()))
+	l.infoLogger.Println(l.infoColor.Sprintf("%s [CONFIG] PORT: %s", timestamp(), cfg.Port))
 }

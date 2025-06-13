@@ -1,0 +1,50 @@
+services:
+  server:
+    build: .
+    env_file: .env
+    container_name: "socially-go-server"
+    environment:
+      BUILD_TYPE: PROD
+      TZ: UTC
+      MYSQL_HOST: db
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27
+    container_name: "socially-go-nginx"
+    build:
+      context: ./nginx
+    env_file: .env
+    environment:
+      INTERNAL_PORT: ${INTERNAL_PORT}
+    ports:
+      - "${NGINX_EXTERNAL_PORT}:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    container_name: "socially-go-database"
+    environment:
+      TZ: UTC
+      MYSQL_DATABASE: ${MYSQL_NAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - socially_server_go_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  socially_server_go_db_data:

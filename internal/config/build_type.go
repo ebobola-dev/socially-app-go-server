@@ -13,6 +13,19 @@ const (
 	Production
 )
 
+func (b BuildType) String() string {
+	switch b {
+	case Development:
+		return "Development"
+	case Test:
+		return "Test"
+	case Production:
+		return "Production"
+	default:
+		return "!unknown"
+	}
+}
+
 func ParseBuildType(s string) (BuildType, error) {
 	switch strings.ToLower(s) {
 	case "dev":
