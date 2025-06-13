@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	logger "socially-app/internal/util"
+	logger "github.com/ebobola-dev/socially-app-go-server/internal/util/logger"
 
 	"github.com/gofiber/fiber/v2"
 )

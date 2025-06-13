@@ -1,4 +1,4 @@
-module socially-app
+module github.com/ebobola-dev/socially-app-go-server
 
 go 1.24.3
 

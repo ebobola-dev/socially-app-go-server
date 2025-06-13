@@ -1,10 +1,10 @@
 package router
 
 import (
-	"socially-app/internal/config"
-	"socially-app/internal/handler"
-	"socially-app/internal/middleware"
-	logger "socially-app/internal/util"
+	"github.com/ebobola-dev/socially-app-go-server/internal/config"
+	"github.com/ebobola-dev/socially-app-go-server/internal/handler"
+	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
+	logger "github.com/ebobola-dev/socially-app-go-server/internal/util/logger"
 
 	"github.com/gofiber/fiber/v2"
 )

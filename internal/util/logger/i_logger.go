@@ -1,6 +1,6 @@
 package logger
 
-import "socially-app/internal/config"
+import "github.com/ebobola-dev/socially-app-go-server/internal/config"
 
 type ILogger interface {
 	Debug(format string, args ...any)

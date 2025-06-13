@@ -1,9 +1,9 @@
 package main
 
 import (
-	"socially-app/internal/config"
-	"socially-app/internal/router"
-	logger "socially-app/internal/util"
+	"github.com/ebobola-dev/socially-app-go-server/internal/config"
+	"github.com/ebobola-dev/socially-app-go-server/internal/router"
+	logger "github.com/ebobola-dev/socially-app-go-server/internal/util/logger"
 )
 
 func main() {
