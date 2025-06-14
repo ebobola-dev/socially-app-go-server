@@ -2,19 +2,25 @@ package config
 
 import (
 	"log"
-	"os"
 
+	"github.com/ebobola-dev/socially-app-go-server/internal/util/env"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Port      string
 	BuildType BuildType
-} //
+	OwnerKey  string
+
+	Database *DatabaseConfig
+	JWT      *JWTConfig
+	SMTP     *SMTPConfig
+	Minio    *MinioConfig
+}
 
 func Initialize() *Config {
 	_ = godotenv.Load()
-	btStr := _getEnv("BUILD_TYPE", "DEV")
+	btStr := env.GetString("BUILD_TYPE")
 	buildType, err := ParseBuildType(btStr)
 
 	if err != nil {
@@ -23,14 +29,12 @@ func Initialize() *Config {
 	}
 
 	return &Config{
-		Port:      _getEnv("INTERNAL_PORT", "8080"),
+		Port:      env.GetString("INTERNAL_PORT"),
 		BuildType: buildType,
+		OwnerKey:  env.GetString("OWNER_KEY"),
+		Database:  LoadDatabaseConfig(),
+		JWT:       LoadJWTConfig(),
+		SMTP:      LoadSMTPConfig(),
+		Minio:     LoadMinioConfig(),
 	}
-}
-
-func _getEnv(key, fallback string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
-	}
-	return fallback
 }

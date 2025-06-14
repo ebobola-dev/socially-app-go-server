@@ -75,8 +75,3 @@ func (l *MyLogger) Fatal(err error) {
 	l.errorLogger.Println(l.fatalColor.Sprintf("%s [FATAL] %s", l.timestamp(), stack))
 	os.Exit(1)
 }
-
-func (l *MyLogger) PrintConfig(cfg *config.Config) {
-	l.infoLogger.Println(l.infoColor.Sprintf("%s [CONFIG] BUILD_TYPE: %s", l.timestamp(), cfg.BuildType.String()))
-	l.infoLogger.Println(l.infoColor.Sprintf("%s [CONFIG] PORT: %s", l.timestamp(), cfg.Port))
-}
