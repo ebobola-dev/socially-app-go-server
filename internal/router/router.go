@@ -15,13 +15,17 @@ func New(cfg *config.Config, log logger.ILogger) *fiber.App {
 	app.Use(middleware.LoggingMiddleware(log))
 
 	registrationHandler := handler.NewRegistrationHandler(log)
-	userHandler := handler.NewUserHandler(log) //
+	userHandler := handler.NewUserHandler(log)
 
-	app.Post("/registration", registrationHandler.Registration)
-	app.Post("/registration/verify_otp", registrationHandler.VerifyOtp)
-	app.Post("/registration/complete", registrationHandler.CompleteRegistration)
+	apiV2 := app.Group("/api/v2")
 
-	app.Get("/users/check_username", userHandler.CheckUsername)
+	registration := apiV2.Group("/registration")
+	registration.Post("/", registrationHandler.Registration)
+	registration.Post("/verify_otp", registrationHandler.VerifyOtp)
+	registration.Post("/complete", registrationHandler.CompleteRegistration)
+
+	users := apiV2.Group("/users")
+	users.Get("/check_username", userHandler.CheckUsername)
 
 	return app
 }

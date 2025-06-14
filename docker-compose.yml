@@ -7,8 +7,6 @@ services:
       BUILD_TYPE: PROD
       TZ: UTC
       MYSQL_HOST: db
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
