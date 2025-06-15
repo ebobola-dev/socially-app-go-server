@@ -21,13 +21,13 @@ func NewOtpRepository() IOtpRepository {
 
 func (r *OtpRepository) GetByEmail(db *gorm.DB, email string) (*model.Otp, error) {
 	var otp model.Otp
-	err := db.Where("email_address = ?", email).First(&otp).Error
+	err := db.First(&otp, "email_address = ?", email).Error
 	return &otp, err
 }
 
 func (r *OtpRepository) GetByID(db *gorm.DB, ID string) (*model.Otp, error) {
 	var otp model.Otp
-	err := db.Where("id = ?", ID).First(&otp).Error
+	err := db.First(&otp, "id = ?", ID).Error
 	return &otp, err
 }
 

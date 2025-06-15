@@ -35,6 +35,7 @@ func LoggingMiddleware(log logger.ILogger) fiber.Handler {
 				errResp := response.ParseValidationErrors(err)
 				return c.Status(fiber.StatusBadRequest).JSON(errResp.ToJSON())
 			default:
+				log.Error(err)
 				log.Warn("%s %s -> 500 (%d ms) %s\n", method, path, duration, err)
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"_message": "Unexcepted server error",
