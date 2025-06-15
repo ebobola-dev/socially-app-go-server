@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,13 +12,6 @@ import (
 )
 
 type OtpValue []int
-
-type Otp struct {
-	ID           uuid.UUID `gorm:"type:char(36); primaryKey" json:"id"`
-	EmailAddress string    `gorm:"type:varchar(255); uniqueIndex" json:"email"`
-	Value        OtpValue  `gorm:"type:json" json:"value"`
-	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
-}
 
 func (o *OtpValue) Scan(value interface{}) error {
 	bytes, ok := value.([]byte)
@@ -31,26 +25,43 @@ func (o OtpValue) Value() (driver.Value, error) {
 	return json.Marshal(o)
 }
 
-// func (o *OtpValue) UnmarshalJSON(data []byte) error {
-// 	var arr []int
-// 	if err := json.Unmarshal(data, &arr); err != nil {
-// 		return err
-// 	}
-// 	if len(arr) != 4 {
-// 		return fmt.Errorf("otp_value must have 4 digits")
-// 	}
-// 	for _, digit := range arr {
-// 		if digit < 0 || digit > 9 {
-// 			return fmt.Errorf("otp_value digits must be between 0 and 9")
-// 		}
-// 	}
-// 	copy(o[:], arr)
-// 	return nil
-// }
+type Otp struct {
+	ID           uuid.UUID `gorm:"type:char(36); primaryKey" json:"id"`
+	EmailAddress string    `gorm:"type:varchar(255); uniqueIndex" json:"email"`
+	Value        OtpValue  `gorm:"type:json" json:"value"`
+	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
+}
+
+func (Otp) TableName() string {
+	return "otp"
+}
 
 func (o *Otp) BeforeCreate(tx *gorm.DB) (err error) {
-	if o.ID == uuid.Nil {
-		o.ID = uuid.New()
-	}
+	o.ID = uuid.New()
+	o.Value = GenerateOtpValue()
 	return
+}
+
+func GenerateOtpValue() OtpValue {
+	return OtpValue{
+		rand.Intn(10),
+		rand.Intn(10),
+		rand.Intn(10),
+		rand.Intn(10),
+	}
+}
+
+func (o *Otp) IsAlive() bool {
+	return time.Since(o.CreatedAt) < 15*time.Minute
+}
+
+func (o *Otp) CanUpdate() (bool, int) {
+	delta := time.Since(o.CreatedAt)
+	seconds_delta := int(delta.Seconds())
+	return delta > 1*time.Minute, seconds_delta
+}
+
+func (o *Otp) RegenerateCode() {
+	o.Value = GenerateOtpValue()
+	o.CreatedAt = time.Now().UTC()
 }
