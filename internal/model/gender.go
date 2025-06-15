@@ -3,10 +3,10 @@ package model
 type Gender string
 
 const (
-	Male   Gender = "male"
-	Female Gender = "female"
+	GMale   Gender = "male"
+	GFemale Gender = "female"
 )
 
 func IsValidGender(g string) bool {
-	return g == string(Male) || g == string(Female)
+	return g == string(GMale) || g == string(GFemale)
 }
