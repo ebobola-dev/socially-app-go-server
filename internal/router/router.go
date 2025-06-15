@@ -5,23 +5,24 @@ import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/handler"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/validation"
-	"github.com/go-playground/validator/v10"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func New(appScope scope.IAppScope, repositoriesScope scope.IRepoistoriesScope) *fiber.App {
+func New(appScope scope.IAppScope, repositoriesScope scope.IRepositoriesScope, servicesScope scope.IServicesScope) *fiber.App {
 	app := fiber.New()
 	log := appScope.GetLogger()
 	db := appScope.GetDB()
 	otpRepository := repositoriesScope.GetOtpRepository()
+	emailService := servicesScope.GetEmailService()
+	jwtService := servicesScope.GetJwtService()
 
-	validate := validator.New()
-	validate.RegisterValidation("otp_value", validation.OtpValueValidator)
+	validate := validation.NewValidator()
+
 	app.Use(middleware.LoggingMiddleware(log))
 	app.Use(middleware.DatabaseSessionMiddleware(db))
 
-	registrationHandler := handler.NewRegistrationHandler(log, validate, otpRepository)
+	registrationHandler := handler.NewRegistrationHandler(log, validate, otpRepository, emailService, jwtService)
 	userHandler := handler.NewUserHandler(log)
 
 	apiV2 := app.Group("/api/v2")

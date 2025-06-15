@@ -1,8 +1,7 @@
 package response
 
 import (
-	"strings"
-
+	string_utils "github.com/ebobola-dev/socially-app-go-server/internal/util"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -31,7 +30,7 @@ func ParseValidationErrors(err error) ErrorResponse {
 
 	fieldErrors := make(map[string]string)
 	for _, e := range validationErrors {
-		field := strings.ToLower(e.Field())
+		field := string_utils.ToSnakeCase(e.Field())
 		switch e.Tag() {
 		case "required":
 			fieldErrors[field] = "is required"
@@ -45,6 +44,20 @@ func ParseValidationErrors(err error) ErrorResponse {
 			fieldErrors[field] = "length must be " + e.Param()
 		case "otp_value":
 			fieldErrors[field] = "otp value must be array of 4 numbers 0-9"
+		case "date":
+			fieldErrors[field] = "must be string date in dd.mm.yyyy format"
+		case "gender":
+			fieldErrors[field] = "must be string - male or female"
+		case "password":
+			fieldErrors[field] = "at least one letter, at least one digit, between 8 and 32 characters"
+		case "username_length":
+			fieldErrors[field] = "length must be between 4 and 32 characters"
+		case "username_charset":
+			fieldErrors[field] = "only lowercase Latin letters, numbers, underscores and dots are allowed"
+		case "username_start_digit":
+			fieldErrors[field] = "cannot start with a number"
+		case "username_start_dot":
+			fieldErrors[field] = "cannot start with a dot"
 		default:
 			fieldErrors[field] = "invalid value"
 		}

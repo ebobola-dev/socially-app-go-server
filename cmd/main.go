@@ -16,8 +16,9 @@ func main() {
 
 	appScope := scope.NewAppScope(cfg, log, db)
 	repositoriesScope := scope.NewRepositoriesScope()
+	servicesScope := scope.NewServicesScope(cfg.SMTP, cfg.JWT)
 
-	app := router.New(appScope, repositoriesScope)
+	app := router.New(appScope, repositoriesScope, servicesScope)
 
 	log.Info("BUILD_TYPE: %s", cfg.BuildType.String())
 	log.Info("Server running on port: %s\n", cfg.Port)

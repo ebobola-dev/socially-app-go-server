@@ -1,7 +1,6 @@
 package common_error
 
 import (
-	api_error "github.com/ebobola-dev/socially-app-go-server/internal/errors"
 	"github.com/ebobola-dev/socially-app-go-server/internal/response"
 )
 
@@ -23,12 +22,10 @@ func (e *InvalidJSONError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewInvalidJSONError(message string) api_error.ApiError {
-	return &InvalidJSONError{
-		msg:  "Invalid JSON",
-		code: 400,
-		resp: &response.ErrorResponse{
-			Message: message,
-		},
-	}
+var ErrInvalidJSON = &InvalidJSONError{
+	msg:  "Invalid JSON",
+	code: 400,
+	resp: &response.ErrorResponse{
+		Message: "Need JSON body",
+	},
 }

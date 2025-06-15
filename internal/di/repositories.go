@@ -2,7 +2,7 @@ package scope
 
 import "github.com/ebobola-dev/socially-app-go-server/internal/repository"
 
-type IRepoistoriesScope interface {
+type IRepositoriesScope interface {
 	GetOtpRepository() repository.IOtpRepository
 }
 
@@ -10,7 +10,7 @@ type RepositoriesScope struct {
 	otp repository.IOtpRepository
 }
 
-func NewRepositoriesScope() IRepoistoriesScope {
+func NewRepositoriesScope() IRepositoriesScope {
 	return &RepositoriesScope{
 		otp: repository.NewOtpRepository(),
 	}

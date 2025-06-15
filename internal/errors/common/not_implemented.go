@@ -1,7 +1,6 @@
 package common_error
 
 import (
-	api_error "github.com/ebobola-dev/socially-app-go-server/internal/errors"
 	"github.com/ebobola-dev/socially-app-go-server/internal/response"
 )
 
@@ -23,12 +22,10 @@ func (e *NotImplementedError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewNotImplementedError() api_error.ApiError {
-	return &NotImplementedError{
-		msg:  "Not implemented",
-		code: 501,
-		resp: &response.ErrorResponse{
-			Message: "Not implemented yet",
-		},
-	}
+var ErrNotImplemented = &NotImplementedError{
+	msg:  "Not implemented",
+	code: 501,
+	resp: &response.ErrorResponse{
+		Message: "Not implemented yet",
+	},
 }

@@ -1,7 +1,6 @@
 package otp_error
 
 import (
-	api_error "github.com/ebobola-dev/socially-app-go-server/internal/errors"
 	"github.com/ebobola-dev/socially-app-go-server/internal/response"
 )
 
@@ -23,12 +22,10 @@ func (e *OtdIsOutdatedError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewOtdIsOutdatedError() api_error.ApiError {
-	return &OtdIsOutdatedError{
-		msg:  "Outdated",
-		code: 400,
-		resp: &response.ErrorResponse{
-			Message: "OTP code is outdated, resend new otp code",
-		},
-	}
+var ErrIsOutdated = &OtdIsOutdatedError{
+	msg:  "Outdated",
+	code: 400,
+	resp: &response.ErrorResponse{
+		Message: "OTP code is outdated, resend new otp code",
+	},
 }
