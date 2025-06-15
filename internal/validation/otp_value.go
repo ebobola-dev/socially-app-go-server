@@ -21,7 +21,3 @@ func OtpValueValidator(fl validator.FieldLevel) bool {
 	}
 	return true
 }
-
-func RegisterCustomValidators(v *validator.Validate) {
-	v.RegisterValidation("otp_value", OtpValueValidator)
-}

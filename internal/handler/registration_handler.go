@@ -4,17 +4,17 @@ import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/ebobola-dev/socially-app-go-server/internal/response"
 	logger "github.com/ebobola-dev/socially-app-go-server/internal/util/logger"
-	"github.com/ebobola-dev/socially-app-go-server/internal/validation"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
 type RegistrationHandler struct {
-	log logger.ILogger
+	validate *validator.Validate
+	log      logger.ILogger
 }
 
-func NewRegistrationHandler(log logger.ILogger) IRegistrationHandler {
-	return &RegistrationHandler{log: log}
+func NewRegistrationHandler(log logger.ILogger, validator *validator.Validate) IRegistrationHandler {
+	return &RegistrationHandler{log: log, validate: validator}
 }
 
 func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
@@ -27,8 +27,7 @@ func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
 			Message: "Need JSON body with 'email' string field",
 		}.ToJSON())
 	}
-	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
+	if err := h.validate.Struct(payload); err != nil {
 		errResp := response.ParseValidationErrors(err)
 		return c.Status(fiber.StatusBadRequest).JSON(errResp.ToJSON())
 	}
@@ -46,9 +45,7 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 			Message: "Need JSON body with 'otp_id' string(uuid) field and 'value'([4xint]) field",
 		}.ToJSON())
 	}
-	validate := validator.New()
-	validation.RegisterCustomValidators(validate)
-	if err := validate.Struct(payload); err != nil {
+	if err := h.validate.Struct(payload); err != nil {
 		errResp := response.ParseValidationErrors(err)
 		return c.Status(fiber.StatusBadRequest).JSON(errResp.ToJSON())
 	}

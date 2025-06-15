@@ -3,3 +3,5 @@
 .env
 docker-compose.override.yml
 Dockerfile.dev
+entrypoint.dev.sh
+migrate_hint.bash
