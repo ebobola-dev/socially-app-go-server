@@ -42,6 +42,8 @@ func ParseValidationErrors(err error) ErrorResponse {
 			fieldErrors[field] = "too long"
 		case "len":
 			fieldErrors[field] = "length must be " + e.Param()
+		case "uuid4":
+			fieldErrors[field] = "invalid uuid4 string"
 		case "otp_value":
 			fieldErrors[field] = "otp value must be array of 4 numbers 0-9"
 		case "date":

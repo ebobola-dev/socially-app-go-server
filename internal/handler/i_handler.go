@@ -12,4 +12,5 @@ type IRegistrationHandler interface {
 
 type IUserHandler interface {
 	CheckUsername(c *fiber.Ctx) error
+	GetById(c *fiber.Ctx) error
 }

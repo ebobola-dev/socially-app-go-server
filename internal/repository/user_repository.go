@@ -12,6 +12,8 @@ type IUserRepository interface {
 	Create(db *gorm.DB, user *model.User) error
 	Update(tx *gorm.DB, user *model.User) error
 	Delete(db *gorm.DB, id string) error
+	ExistsByEmail(tx *gorm.DB, email string) (bool, error)
+	ExistsByUsername(tx *gorm.DB, username string) (bool, error)
 }
 
 type UserRepository struct{}
@@ -51,4 +53,20 @@ func (r *UserRepository) Update(tx *gorm.DB, user *model.User) error {
 
 func (r *UserRepository) Delete(db *gorm.DB, id string) error {
 	return db.Delete(&model.User{}, "id = ?", id).Error
+}
+
+func (r *UserRepository) ExistsByEmail(tx *gorm.DB, email string) (bool, error) {
+	var exists bool
+	err := tx.
+		Raw("SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND deleted_at IS NULL)", email).
+		Scan(&exists).Error
+	return exists, err
+}
+
+func (r *UserRepository) ExistsByUsername(tx *gorm.DB, username string) (bool, error) {
+	var exists bool
+	err := tx.
+		Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ? AND deleted_at IS NULL)", username).
+		Scan(&exists).Error
+	return exists, err
 }

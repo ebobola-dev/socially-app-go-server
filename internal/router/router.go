@@ -14,16 +14,18 @@ func New(appScope scope.IAppScope, repositoriesScope scope.IRepositoriesScope, s
 	log := appScope.GetLogger()
 	db := appScope.GetDB()
 	otpRepository := repositoriesScope.GetOtpRepository()
+	userRepository := repositoriesScope.GetUserRepository()
 	emailService := servicesScope.GetEmailService()
 	jwtService := servicesScope.GetJwtService()
+	hashService := servicesScope.GetHashService()
 
 	validate := validation.NewValidator()
 
 	app.Use(middleware.LoggingMiddleware(log))
 	app.Use(middleware.DatabaseSessionMiddleware(db))
 
-	registrationHandler := handler.NewRegistrationHandler(log, validate, otpRepository, emailService, jwtService)
-	userHandler := handler.NewUserHandler(log)
+	registrationHandler := handler.NewRegistrationHandler(log, validate, otpRepository, userRepository, emailService, jwtService, hashService)
+	userHandler := handler.NewUserHandler(log, validate, userRepository)
 
 	apiV2 := app.Group("/api/v2")
 
@@ -34,6 +36,7 @@ func New(appScope scope.IAppScope, repositoriesScope scope.IRepositoriesScope, s
 
 	users := apiV2.Group("/users")
 	users.Get("/check_username", userHandler.CheckUsername)
+	users.Get("/:user_id", userHandler.GetById)
 
 	return app
 }
