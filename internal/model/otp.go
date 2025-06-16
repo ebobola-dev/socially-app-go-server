@@ -37,8 +37,12 @@ func (Otp) TableName() string {
 }
 
 func (o *Otp) BeforeCreate(tx *gorm.DB) (err error) {
-	o.ID = uuid.New()
-	o.Value = GenerateOtpValue()
+	if o.ID == uuid.Nil {
+		o.ID = uuid.New()
+	}
+	if len(o.Value) == 0 {
+		o.Value = GenerateOtpValue()
+	}
 	return
 }
 

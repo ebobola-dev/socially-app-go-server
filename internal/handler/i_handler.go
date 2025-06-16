@@ -14,3 +14,9 @@ type IUserHandler interface {
 	CheckUsername(c *fiber.Ctx) error
 	GetById(c *fiber.Ctx) error
 }
+
+type IAuthHandler interface {
+	Login(c *fiber.Ctx) error
+	Logout(c *fiber.Ctx) error
+	Refresh(c *fiber.Ctx) error
+}

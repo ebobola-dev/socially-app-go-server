@@ -12,9 +12,13 @@ type Privilege struct {
 	Name       string    `gorm:"type:varchar(64); uniqueIndex" json:"name"`
 	OrderIndex int       `gorm:"not null;default:0"  json:"order_index"`
 	CreatedAt  time.Time `gorm:"autoCreateTime" json:"created_at"`
+
+	Users []User `gorm:"many2many:user_privileges" json:"-"`
 }
 
-func (o *Privilege) BeforeCreate(tx *gorm.DB) (err error) {
-	o.ID = uuid.New()
+func (p *Privilege) BeforeCreate(tx *gorm.DB) (err error) {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
 	return
 }

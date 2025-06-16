@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -14,6 +15,7 @@ type IUserRepository interface {
 	Delete(db *gorm.DB, id string) error
 	ExistsByEmail(tx *gorm.DB, email string) (bool, error)
 	ExistsByUsername(tx *gorm.DB, username string) (bool, error)
+	AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error
 }
 
 type UserRepository struct{}
@@ -24,7 +26,7 @@ func NewUserRepository() IUserRepository {
 
 func (r *UserRepository) GetByID(db *gorm.DB, ID string) (*model.User, error) {
 	var user model.User
-	err := db.First(&user, "id = ?", ID).First(&user).Error
+	err := db.Preload("Privileges").First(&user, "id = ?", ID).Error
 	return &user, err
 }
 
@@ -69,4 +71,14 @@ func (r *UserRepository) ExistsByUsername(tx *gorm.DB, username string) (bool, e
 		Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ? AND deleted_at IS NULL)", username).
 		Scan(&exists).Error
 	return exists, err
+}
+
+func (r *UserRepository) AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error {
+	user := model.User{ID: userID}
+	privilege := model.Privilege{ID: privID}
+	err := tx.
+		Model(&user).
+		Association("Privileges").
+		Append(&privilege)
+	return err
 }

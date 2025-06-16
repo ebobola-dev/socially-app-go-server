@@ -10,8 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type UserHandler struct {
-}
+type UserHandler struct{}
 
 func NewUserHandler() IUserHandler {
 	return &UserHandler{}

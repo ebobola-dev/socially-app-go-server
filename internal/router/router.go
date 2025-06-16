@@ -16,18 +16,32 @@ func New(appScope *scope.AppScope) *fiber.App {
 	app.Use(middleware.DatabaseSessionMiddleware(appScope.Db))
 
 	registrationHandler := handler.NewRegistrationHandler()
+	authHandler := handler.NewAuthHandler()
 	userHandler := handler.NewUserHandler()
 
 	apiV2 := app.Group("/api/v2")
 
 	registration := apiV2.Group("/registration")
-	registration.Post("/", registrationHandler.Registration)
-	registration.Post("/verify_otp", registrationHandler.VerifyOtp)
-	registration.Post("/complete", registrationHandler.CompleteRegistration)
+	{
+		registration.Post("/", registrationHandler.Registration)
+		registration.Post("/verify_otp", registrationHandler.VerifyOtp)
+		registration.Post("/complete", registrationHandler.CompleteRegistration)
+	}
+
+	auth := apiV2.Group("/auth")
+	{
+		auth.Post("/login", authHandler.Login)
+		auth.Post("/logout", authHandler.Logout)
+		auth.Patch("/refresh", authHandler.Refresh)
+	}
 
 	users := apiV2.Group("/users")
-	users.Get("/check_username", userHandler.CheckUsername)
-	users.Get("/:user_id", userHandler.GetById)
+	{
+		users.Get("/check_username", userHandler.CheckUsername)
+
+		//% must be last
+		users.Get("/:user_id", userHandler.GetById)
+	}
 
 	return app
 }

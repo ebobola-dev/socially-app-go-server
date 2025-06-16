@@ -11,7 +11,7 @@ type User struct {
 	ID          uuid.UUID `gorm:"type:char(36);primaryKey" json:"id"`
 	Email       string    `gorm:"uniqueIndex;not null" json:"email_address"`
 	Username    string    `gorm:"uniqueIndex;type:varchar(16);not null" json:"username"`
-	Password    string    `gorm:"type:varchar(16), not null" json:"-"`
+	Password    string    `gorm:"type:char(60), not null" json:"-"`
 	Fullname    *string   `gorm:"type:varchar(32)" json:"fullname"`
 	AboutMe     *string   `gorm:"type:varchar(256)" json:"about_me"`
 	Gender      *Gender   `gorm:"type:enum('male','female')" json:"gender"`
@@ -28,7 +28,9 @@ type User struct {
 	CreatedAt time.Time  `gorm:"autoCreateTime" json:"created_at"`
 }
 
-func (o *User) BeforeCreate(tx *gorm.DB) (err error) {
-	o.ID = uuid.New()
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	if u.ID == uuid.Nil {
+		u.ID = uuid.New()
+	}
 	return
 }
