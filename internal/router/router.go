@@ -4,28 +4,19 @@ import (
 	scope "github.com/ebobola-dev/socially-app-go-server/internal/di"
 	"github.com/ebobola-dev/socially-app-go-server/internal/handler"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
-	"github.com/ebobola-dev/socially-app-go-server/internal/validation"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func New(appScope scope.IAppScope, repositoriesScope scope.IRepositoriesScope, servicesScope scope.IServicesScope) *fiber.App {
+func New(appScope *scope.AppScope) *fiber.App {
 	app := fiber.New()
-	log := appScope.GetLogger()
-	db := appScope.GetDB()
-	otpRepository := repositoriesScope.GetOtpRepository()
-	userRepository := repositoriesScope.GetUserRepository()
-	emailService := servicesScope.GetEmailService()
-	jwtService := servicesScope.GetJwtService()
-	hashService := servicesScope.GetHashService()
 
-	validate := validation.NewValidator()
+	app.Use(middleware.ScopeMiddleware(appScope))
+	app.Use(middleware.LoggingMiddleware(appScope.Log))
+	app.Use(middleware.DatabaseSessionMiddleware(appScope.Db))
 
-	app.Use(middleware.LoggingMiddleware(log))
-	app.Use(middleware.DatabaseSessionMiddleware(db))
-
-	registrationHandler := handler.NewRegistrationHandler(log, validate, otpRepository, userRepository, emailService, jwtService, hashService)
-	userHandler := handler.NewUserHandler(log, validate, userRepository)
+	registrationHandler := handler.NewRegistrationHandler()
+	userHandler := handler.NewUserHandler()
 
 	apiV2 := app.Group("/api/v2")
 

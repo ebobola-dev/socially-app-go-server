@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func Connect(cfg config.DatabaseConfig) *gorm.DB {
+func Connect(cfg *config.DatabaseConfig) *gorm.DB {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true&charset=utf8mb4&loc=UTC",
 		cfg.User, cfg.Password, cfg.Host, cfg.Name)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{

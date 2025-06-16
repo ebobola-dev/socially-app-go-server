@@ -13,73 +13,51 @@ import (
 	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
-	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
-	"github.com/ebobola-dev/socially-app-go-server/internal/service/email"
-	hash_s "github.com/ebobola-dev/socially-app-go-server/internal/service/hash"
-	jwt_s "github.com/ebobola-dev/socially-app-go-server/internal/service/jwt"
-	logger "github.com/ebobola-dev/socially-app-go-server/internal/util/logger"
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 )
 
 type RegistrationHandler struct {
-	validate       *validator.Validate
-	log            logger.ILogger
-	otpRepository  repository.IOtpRepository
-	userRepository repository.IUserRepository
-	emailService   email.IEmailService
-	jwtService     jwt_s.IJwtService
-	hashService    hash_s.IHashService
 }
 
-func NewRegistrationHandler(
-	log logger.ILogger,
-	validator *validator.Validate,
-	otpRepository repository.IOtpRepository,
-	userRepository repository.IUserRepository,
-	emailService email.IEmailService,
-	jwtService jwt_s.IJwtService,
-	hashService hash_s.IHashService,
-) IRegistrationHandler {
-	return &RegistrationHandler{
-		log:            log,
-		validate:       validator,
-		otpRepository:  otpRepository,
-		userRepository: userRepository,
-		emailService:   emailService,
-		jwtService:     jwtService,
-		hashService:    hashService,
-	}
+func NewRegistrationHandler() IRegistrationHandler {
+	return &RegistrationHandler{}
 }
 
 func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
+	scope := middleware.GetAppScope(c)
+	validate := scope.Validate
+	log := scope.Log
+	userRepository := scope.UserRepository
+	otpRepository := scope.OtpRepository
+	emailService := scope.EmailService
+
 	payload := struct {
 		Email string `json:"email" validate:"required,email"`
 	}{}
 	if err := c.BodyParser(&payload); err != nil {
 		return common_error.ErrInvalidJSON
 	}
-	if err := h.validate.Struct(payload); err != nil {
+	if err := validate.Struct(payload); err != nil {
 		return err
 	}
-	h.log.Debug("Email: %s", payload.Email)
+	log.Debug("Email: %s", payload.Email)
 
 	tx := middleware.GetTX(c)
 
-	if exists, ex_err := h.userRepository.ExistsByEmail(tx, payload.Email); ex_err != nil {
+	if exists, ex_err := userRepository.ExistsByEmail(tx, payload.Email); ex_err != nil {
 		return ex_err
 	} else if exists {
 		return user_error.NewAlreadyRegisteredError(payload.Email)
 	}
 
-	otp, get_err := h.otpRepository.GetByEmail(tx, payload.Email)
+	otp, get_err := otpRepository.GetByEmail(tx, payload.Email)
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		otp = &model.Otp{EmailAddress: payload.Email}
-		cr_err := h.otpRepository.Create(tx, otp)
+		cr_err := otpRepository.Create(tx, otp)
 		if cr_err != nil {
 			return cr_err
 		}
@@ -88,13 +66,13 @@ func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
 			return otp_error.NewCantUpdateOtpError(delta)
 		}
 		otp.RegenerateCode()
-		upd_err := h.otpRepository.Update(tx, otp)
+		upd_err := otpRepository.Update(tx, otp)
 		if upd_err != nil {
 			return upd_err
 		}
 	}
 
-	email_err := h.emailService.Send(
+	email_err := emailService.Send(
 		payload.Email,
 		"Your OTP code for registration on Socially App",
 		fmt.Sprintf("OTP code: %v\nThis code is valid for 15 minutes.", otp.Value),
@@ -102,7 +80,7 @@ func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
 	if email_err != nil {
 		return email_err
 	}
-	h.log.Debug("Generated otp: %v", otp.Value)
+	log.Debug("Generated otp: %v", otp.Value)
 	return c.JSON(fiber.Map{
 		"id":         otp.ID,
 		"created_at": otp.CreatedAt,
@@ -110,6 +88,12 @@ func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
 }
 
 func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
+	scope := middleware.GetAppScope(c)
+	validate := scope.Validate
+	userRepository := scope.UserRepository
+	otpRepository := scope.OtpRepository
+	jwtService := scope.JwtService
+
 	payload := struct {
 		OtpId string         `json:"otp_id" validate:"required,uuid4"`
 		Value model.OtpValue `json:"value" validate:"required,otp_value"`
@@ -117,21 +101,21 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 	if err := c.BodyParser(&payload); err != nil {
 		return common_error.ErrInvalidJSON
 	}
-	if err := h.validate.Struct(payload); err != nil {
+	if err := validate.Struct(payload); err != nil {
 		return err
 	}
 	tx := middleware.GetTX(c)
-	otp, get_err := h.otpRepository.GetByID(tx, payload.OtpId)
+	otp, get_err := otpRepository.GetByID(tx, payload.OtpId)
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundError("OTP code")
 	}
-	del_err := h.otpRepository.Delete(tx, otp.ID.String())
+	del_err := otpRepository.Delete(tx, otp.ID.String())
 	if del_err != nil {
 		return del_err
 	}
-	if exists, ex_err := h.userRepository.ExistsByEmail(tx, otp.EmailAddress); ex_err != nil {
+	if exists, ex_err := userRepository.ExistsByEmail(tx, otp.EmailAddress); ex_err != nil {
 		return ex_err
 	} else if exists {
 		return user_error.NewAlreadyRegisteredError(otp.EmailAddress)
@@ -143,7 +127,7 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 	if !reflect.DeepEqual(payload.Value, otp.Value) {
 		return otp_error.ErrIncorect
 	}
-	token, token_err := h.jwtService.GenerateRegistration(otp.EmailAddress)
+	token, token_err := jwtService.GenerateRegistration(otp.EmailAddress)
 	if token_err != nil {
 		return token_err
 	}
@@ -153,6 +137,12 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 }
 
 func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
+	scope := middleware.GetAppScope(c)
+	validate := scope.Validate
+	userRepository := scope.UserRepository
+	jwtService := scope.JwtService
+	hashService := scope.HashService
+
 	authHeaders := c.Request().Header.Peek("Authorization")
 	if len(authHeaders) == 0 {
 		return auth_error.ErrMissingHeader
@@ -166,7 +156,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	if token == "" {
 		return auth_error.ErrNoToken
 	}
-	reg_data, token_err := h.jwtService.ValidateRegistration(token)
+	reg_data, token_err := jwtService.ValidateRegistration(token)
 	if token_err != nil {
 		if errors.Is(token_err, jwt.ErrTokenExpired) {
 			return auth_error.ErrExpired
@@ -176,7 +166,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 
 	tx := middleware.GetTX(c)
 
-	if exists, ex_err := h.userRepository.ExistsByEmail(tx, reg_data.Email); ex_err != nil {
+	if exists, ex_err := userRepository.ExistsByEmail(tx, reg_data.Email); ex_err != nil {
 		return ex_err
 	} else if exists {
 		return user_error.NewAlreadyRegisteredError(reg_data.Email)
@@ -193,12 +183,12 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	if err := c.BodyParser(&payload); err != nil {
 		return common_error.ErrInvalidJSON
 	}
-	if err := h.validate.Struct(payload); err != nil {
+	if err := validate.Struct(payload); err != nil {
 		return err
 	}
 	gender := model.GenderFromString(payload.Gender)
 	dob, _ := time.Parse("02.01.2006", payload.DateOfBirth)
-	hashed_password, hash_err := h.hashService.HashPassword(payload.Password)
+	hashed_password, hash_err := hashService.HashPassword(payload.Password)
 	if hash_err != nil {
 		return hash_err
 	}
@@ -212,7 +202,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 		Username:    payload.Username,
 		Password:    hashed_password,
 	}
-	cr_err := h.userRepository.Create(tx, new_user)
+	cr_err := userRepository.Create(tx, new_user)
 	if cr_err != nil {
 		return cr_err
 	}
