@@ -32,13 +32,13 @@ func (r *UserRepository) GetByID(db *gorm.DB, ID string) (*model.User, error) {
 
 func (r *UserRepository) GetByUsername(db *gorm.DB, username string) (*model.User, error) {
 	var user model.User
-	err := db.First(&user, "username = ?", username).Error
+	err := db.Preload("Privileges").First(&user, "username = ?", username).Error
 	return &user, err
 }
 
 func (r *UserRepository) GetByEmail(db *gorm.DB, email string) (*model.User, error) {
 	var user model.User
-	err := db.First(&user, "email = ?", email).Error
+	err := db.Preload("Privileges").First(&user, "email = ?", email).Error
 	return &user, err
 }
 

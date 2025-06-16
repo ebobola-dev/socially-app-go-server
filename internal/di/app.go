@@ -14,30 +14,32 @@ import (
 )
 
 type AppScope struct {
-	Cfg                 *config.Config
-	Log                 logger.ILogger
-	Db                  *gorm.DB
-	Validate            *validator.Validate
-	OtpRepository       repository.IOtpRepository
-	PrivilegeRepository repository.IPrivilegeRepository
-	UserRepository      repository.IUserRepository
-	EmailService        email.IEmailService
-	JwtService          jwt_service.IJwtService
-	HashService         hash.IHashService
+	Cfg                    *config.Config
+	Log                    logger.ILogger
+	Db                     *gorm.DB
+	Validate               *validator.Validate
+	OtpRepository          repository.IOtpRepository
+	PrivilegeRepository    repository.IPrivilegeRepository
+	UserRepository         repository.IUserRepository
+	RefreshTokenRepository repository.IRefreshTokenRepository
+	EmailService           email.IEmailService
+	JwtService             jwt_service.IJwtService
+	HashService            hash.IHashService
 }
 
 func ConfigureAppScope() *AppScope {
 	cfg := config.Initialize()
 	return &AppScope{
-		Cfg:                 cfg,
-		Log:                 logger.Create(cfg),
-		Db:                  database.Connect(cfg.Database),
-		Validate:            validation.NewValidator(),
-		OtpRepository:       repository.NewOtpRepository(),
-		PrivilegeRepository: repository.NewPrivilegeRepository(),
-		UserRepository:      repository.NewUserRepository(),
-		EmailService:        email.NewEmailService(cfg.SMTP),
-		JwtService:          jwt_service.NewJwtService(cfg.JWT),
-		HashService:         hash.NewHashService(),
+		Cfg:                    cfg,
+		Log:                    logger.Create(cfg),
+		Db:                     database.Connect(cfg.Database),
+		Validate:               validation.NewValidator(),
+		OtpRepository:          repository.NewOtpRepository(),
+		PrivilegeRepository:    repository.NewPrivilegeRepository(),
+		UserRepository:         repository.NewUserRepository(),
+		RefreshTokenRepository: repository.NewRefreshTokenRepository(),
+		EmailService:           email.NewEmailService(cfg.SMTP),
+		JwtService:             jwt_service.NewJwtService(cfg.JWT),
+		HashService:            hash.NewHashService(),
 	}
 }

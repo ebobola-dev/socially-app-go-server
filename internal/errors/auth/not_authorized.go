@@ -1,6 +1,9 @@
 package auth_error
 
 import (
+	"fmt"
+
+	api_error "github.com/ebobola-dev/socially-app-go-server/internal/errors"
 	"github.com/ebobola-dev/socially-app-go-server/internal/response"
 )
 
@@ -75,4 +78,17 @@ var ErrInvalidToken = &NotAuthorizedError{
 			"type": "invalid_token",
 		},
 	},
+}
+
+func NewUserNotFoundError(userId string) api_error.ApiError {
+	return &NotAuthorizedError{
+		msg:  fmt.Sprintf("!User with id in token not found! (%s)", userId),
+		code: 401,
+		resp: &response.ErrorResponse{
+			Message: "You are not authorized",
+			Fields: map[string]string{
+				"type": "user not found",
+			},
+		},
+	}
 }

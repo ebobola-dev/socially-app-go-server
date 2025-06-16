@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
@@ -43,13 +44,33 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if !passwordIsValid {
 		return auth_error.NewInvalidLoginData(fmt.Sprintf("wrong password (@%s)", payload.Username))
 	}
-	access_token, refresh_token, jwt_err := s.JwtService.GenerateUserPair(user.ID.String())
+	deviceId := middleware.GetDeviceId(c)
+	access_token, refresh_token, jwt_err := s.JwtService.GenerateUserPair(user.ID, deviceId)
 	if jwt_err != nil {
 		return jwt_err
 	}
-	s.Log.Debug("access token: %s", access_token)
-	s.Log.Debug("refresh token: %s", refresh_token)
-	return common_error.ErrNotImplemented
+	saved_rt, get_err := s.RefreshTokenRepository.GetByUIDAndDeviceID(tx, user.ID.String(), deviceId)
+	if errors.Is(get_err, gorm.ErrRecordNotFound) {
+		cr_err := s.RefreshTokenRepository.Create(tx, refresh_token)
+		if cr_err != nil {
+			return cr_err
+		}
+	} else if get_err != nil {
+		return get_err
+	} else {
+		saved_rt.Value = refresh_token.Value
+		saved_rt.ExpiresAt = refresh_token.ExpiresAt
+		saved_rt.CreatedAt = time.Now().UTC()
+		upd_err := s.RefreshTokenRepository.Update(tx, saved_rt)
+		if upd_err != nil {
+			return upd_err
+		}
+	}
+	return c.JSON(fiber.Map{
+		"access_token":  access_token,
+		"refresh_token": refresh_token.Value,
+		"user":          user,
+	})
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {

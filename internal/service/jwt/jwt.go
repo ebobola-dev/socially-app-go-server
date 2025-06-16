@@ -5,13 +5,15 @@ import (
 	"time"
 
 	"github.com/ebobola-dev/socially-app-go-server/internal/config"
+	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type IJwtService interface {
 	GenerateRegistration(email string) (string, error)
 	ValidateRegistration(token string) (*RegistrationClaims, error)
-	GenerateUserPair(userId string) (string, string, error)
+	GenerateUserPair(userId uuid.UUID, deviceId string) (string, *model.RefreshToken, error)
 	ValidateUserAccess(accessTokenString string) (*UserClaims, error)
 	ValidateUserRefresh(refreshTokenString string) (*UserClaims, error)
 }
@@ -32,7 +34,7 @@ type RegistrationClaims struct {
 }
 
 type UserClaims struct {
-	ID string `json:"user_id"`
+	ID uuid.UUID `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -41,7 +43,7 @@ func (s *JwtService) GenerateRegistration(email string) (string, error) {
 	claims := RegistrationClaims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * time.Duration(s.cfg.ACCESS_DURABILITY_HOURS))),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute * time.Duration(s.cfg.ACCESS_DURABILITY_MIN))),
 			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
@@ -66,10 +68,10 @@ func (s *JwtService) ValidateRegistration(tokenString string) (*RegistrationClai
 	return claims, nil
 }
 
-func (s *JwtService) GenerateUserPair(userId string) (string, string, error) {
+func (s *JwtService) GenerateUserPair(userId uuid.UUID, deviceId string) (string, *model.RefreshToken, error) {
 	now := time.Now()
 	access_registered_claims := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * time.Duration(s.cfg.ACCESS_DURABILITY_HOURS))),
+		ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute * time.Duration(s.cfg.ACCESS_DURABILITY_MIN))),
 		IssuedAt:  jwt.NewNumericDate(now),
 	}
 	refresh_registered_claims := jwt.RegisteredClaims{
@@ -88,13 +90,19 @@ func (s *JwtService) GenerateUserPair(userId string) (string, string, error) {
 	refresh_token := jwt.NewWithClaims(jwt.SigningMethodHS256, refresh_claims)
 	access_string_token, a_err := access_token.SignedString(s.cfg.ACCESS_SERCER_KEY)
 	if a_err != nil {
-		return "", "", a_err
+		return "", nil, a_err
 	}
 	refresh_string_token, r_err := refresh_token.SignedString(s.cfg.REFRESH_SERCER_KEY)
 	if r_err != nil {
-		return "", "", r_err
+		return "", nil, r_err
 	}
-	return access_string_token, refresh_string_token, nil
+	rt_obj := &model.RefreshToken{
+		UserID:    userId,
+		DeviceID:  deviceId,
+		Value:     refresh_string_token,
+		ExpiresAt: refresh_registered_claims.ExpiresAt.Time,
+	}
+	return access_string_token, rt_obj, nil
 }
 
 func (s *JwtService) ValidateUserAccess(accessTokenString string) (*UserClaims, error) {

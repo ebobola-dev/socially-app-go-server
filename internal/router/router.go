@@ -28,14 +28,14 @@ func New(appScope *scope.AppScope) *fiber.App {
 		registration.Post("/complete", registrationHandler.CompleteRegistration)
 	}
 
-	auth := apiV2.Group("/auth")
+	auth := apiV2.Group("/auth", middleware.DeviceIdMiddleware())
 	{
 		auth.Post("/login", authHandler.Login)
 		auth.Post("/logout", authHandler.Logout)
 		auth.Patch("/refresh", authHandler.Refresh)
 	}
 
-	users := apiV2.Group("/users")
+	users := apiV2.Group("/users", middleware.AuthenticationMiddleware())
 	{
 		users.Get("/check_username", userHandler.CheckUsername)
 
