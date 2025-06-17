@@ -7,6 +7,7 @@ import (
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -53,8 +54,8 @@ func AuthenticationMiddleware() fiber.Handler {
 	}
 }
 
-func GetUserId(c *fiber.Ctx) string {
-	userId, ok := c.Locals("user_id").(string)
+func GetUserId(c *fiber.Ctx) uuid.UUID {
+	userId, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		panic("user_id not found in context")
 	}

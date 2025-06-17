@@ -60,14 +60,19 @@ func (l *MyLogger) Info(format string, args ...any) {
 	l.infoLogger.Println(l.infoColor.Sprintf("%s [INFO] %s", l.timestamp(), msg))
 }
 
-func (l *MyLogger) Warn(format string, args ...any) {
+func (l *MyLogger) Warning(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	l.infoLogger.Println(l.warnColor.Sprintf("%s [WARN] %s", l.timestamp(), msg))
+	l.infoLogger.Println(l.warnColor.Sprintf("%s [WARNING] %s", l.timestamp(), msg))
 }
 
-func (l *MyLogger) Error(err error) {
+func (l *MyLogger) Error(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	l.infoLogger.Println(l.errorColor.Sprintf("%s [ERROR] %s", l.timestamp(), msg))
+}
+
+func (l *MyLogger) Exception(err error) {
 	stack := eris.ToString(err, true)
-	l.errorLogger.Println(l.errorColor.Sprintf("%s [ERROR] %s", l.timestamp(), stack))
+	l.errorLogger.Println(l.errorColor.Sprintf("%s [EXCEPTION] %s", l.timestamp(), stack))
 }
 
 func (l *MyLogger) Fatal(err error) {

@@ -3,7 +3,8 @@ package logger
 type ILogger interface {
 	Debug(format string, args ...any)
 	Info(format string, args ...any)
-	Warn(format string, args ...any)
-	Error(err error)
+	Warning(format string, args ...any)
+	Error(format string, args ...any)
+	Exception(err error)
 	Fatal(err error)
 }

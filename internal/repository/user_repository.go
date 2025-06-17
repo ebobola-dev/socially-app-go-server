@@ -16,6 +16,8 @@ type IUserRepository interface {
 	ExistsByEmail(tx *gorm.DB, email string) (bool, error)
 	ExistsByUsername(tx *gorm.DB, username string) (bool, error)
 	AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error
+	HasAnyPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
+	HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
 }
 
 type UserRepository struct{}
@@ -81,4 +83,40 @@ func (r *UserRepository) AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid
 		Association("Privileges").
 		Append(&privilege)
 	return err
+}
+
+func (r *UserRepository) HasAnyPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error) {
+	if len(privNames) == 0 {
+		return true, nil
+	}
+
+	var count int64
+	err := tx.
+		Model(&model.Privilege{}).
+		Joins("JOIN user_privileges ON user_privileges.privilege_id = privileges.id").
+		Where("user_privileges.user_id = ? AND privileges.name IN ?", userID, privNames).
+		Count(&count).
+		Error
+
+	return count > 0, err
+}
+
+func (r *UserRepository) HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error) {
+	if len(privNames) == 0 {
+		return true, nil
+	}
+
+	var matchedCount int64
+	err := tx.
+		Model(&model.Privilege{}).
+		Joins("JOIN user_privileges ON user_privileges.privilege_id = privileges.id").
+		Where("user_privileges.user_id = ? AND privileges.name IN ?", userID, privNames).
+		Count(&matchedCount).
+		Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return matchedCount == int64(len(privNames)), nil
 }
