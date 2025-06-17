@@ -12,7 +12,7 @@ type IUserRepository interface {
 	GetByEmail(db *gorm.DB, email string) (*model.User, error)
 	Create(db *gorm.DB, user *model.User) error
 	Update(tx *gorm.DB, user *model.User) error
-	Delete(db *gorm.DB, id string) error
+	HardDelete(db *gorm.DB, id string) error
 	ExistsByEmail(tx *gorm.DB, email string) (bool, error)
 	ExistsByUsername(tx *gorm.DB, username string) (bool, error)
 	AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error
@@ -55,7 +55,7 @@ func (r *UserRepository) Update(tx *gorm.DB, user *model.User) error {
 	return tx.Save(user).Error
 }
 
-func (r *UserRepository) Delete(db *gorm.DB, id string) error {
+func (r *UserRepository) HardDelete(db *gorm.DB, id string) error {
 	return db.Delete(&model.User{}, "id = ?", id).Error
 }
 

@@ -31,8 +31,8 @@ func New(appScope *scope.AppScope) *fiber.App {
 	auth := apiV2.Group("/auth", middleware.DeviceIdMiddleware())
 	{
 		auth.Post("/login", authHandler.Login)
-		auth.Post("/logout", authHandler.Logout)
 		auth.Patch("/refresh", authHandler.Refresh)
+		auth.Post("/logout", middleware.AuthenticationMiddleware(), authHandler.Logout)
 	}
 
 	users := apiV2.Group("/users", middleware.AuthenticationMiddleware())

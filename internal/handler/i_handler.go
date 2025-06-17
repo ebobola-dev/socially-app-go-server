@@ -17,6 +17,6 @@ type IUserHandler interface {
 
 type IAuthHandler interface {
 	Login(c *fiber.Ctx) error
-	Logout(c *fiber.Ctx) error
 	Refresh(c *fiber.Ctx) error
+	Logout(c *fiber.Ctx) error
 }

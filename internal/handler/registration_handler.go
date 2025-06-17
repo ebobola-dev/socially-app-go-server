@@ -207,5 +207,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 		return cr_err
 	}
 
-	return c.JSON(new_user)
+	return c.JSON(fiber.Map{
+		"created_user": new_user,
+	})
 }

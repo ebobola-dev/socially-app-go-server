@@ -8,6 +8,7 @@ import (
 type IRefreshTokenRepository interface {
 	GetByID(db *gorm.DB, ID string) (*model.RefreshToken, error)
 	GetByUIDAndDeviceID(db *gorm.DB, userId, deviceId string) (*model.RefreshToken, error)
+	GetByValue(db *gorm.DB, value string) (*model.RefreshToken, error)
 	Create(db *gorm.DB, user *model.RefreshToken) error
 	Update(tx *gorm.DB, user *model.RefreshToken) error
 	Delete(db *gorm.DB, id string) error
@@ -28,6 +29,12 @@ func (r *RefreshTokenRepository) GetByID(db *gorm.DB, ID string) (*model.Refresh
 func (r *RefreshTokenRepository) GetByUIDAndDeviceID(db *gorm.DB, userId, deviceId string) (*model.RefreshToken, error) {
 	var refreshToken model.RefreshToken
 	err := db.First(&refreshToken, "user_id = ? AND device_id = ?", userId, deviceId).Error
+	return &refreshToken, err
+}
+
+func (r *RefreshTokenRepository) GetByValue(db *gorm.DB, value string) (*model.RefreshToken, error) {
+	var refreshToken model.RefreshToken
+	err := db.First(&refreshToken, "value = ?", value).Error
 	return &refreshToken, err
 }
 

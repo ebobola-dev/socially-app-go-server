@@ -80,6 +80,28 @@ var ErrInvalidToken = &NotAuthorizedError{
 	},
 }
 
+var ErrLoggetOut = &NotAuthorizedError{
+	msg:  "Logget out",
+	code: 401,
+	resp: &response.ErrorResponse{
+		Message: "You are not authorized",
+		Fields: map[string]string{
+			"type": "logged_out",
+		},
+	},
+}
+
+var ErrAccountDeleted = &NotAuthorizedError{
+	msg:  "Account was deleted",
+	code: 401,
+	resp: &response.ErrorResponse{
+		Message: "You are not authorized",
+		Fields: map[string]string{
+			"type": "account_deleted",
+		},
+	},
+}
+
 func NewUserNotFoundError(userId string) api_error.ApiError {
 	return &NotAuthorizedError{
 		msg:  fmt.Sprintf("!User with id in token not found! (%s)", userId),

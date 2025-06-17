@@ -3,11 +3,13 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
+	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 
 	"github.com/gofiber/fiber/v2"
@@ -73,10 +75,66 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	return common_error.ErrNotImplemented
+func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+
+	authHeaders := c.Request().Header.Peek("Authorization")
+	if len(authHeaders) == 0 {
+		return auth_error.ErrMissingHeader
+	}
+	headerValue := string(authHeaders)
+	parts := strings.SplitN(headerValue, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return auth_error.ErrWrongFormat
+	}
+	token := parts[1]
+	if token == "" {
+		return auth_error.ErrNoToken
+	}
+	userData, token_err := s.JwtService.ValidateUserRefresh(token)
+	if token_err != nil {
+		if errors.Is(token_err, jwt.ErrTokenExpired) {
+			return auth_error.ErrExpired
+		}
+		return auth_error.ErrInvalidToken
+	}
+	userId := userData.ID
+
+	tx := middleware.GetTX(c)
+
+	user, getUErr := s.UserRepository.GetByID(tx, userId.String())
+	if errors.Is(getUErr, gorm.ErrRecordNotFound) {
+		return auth_error.ErrInvalidToken
+	} else if getUErr != nil {
+		return getUErr
+	}
+
+	deviceId := middleware.GetDeviceId(c)
+	savedRefresh, getTErr := s.RefreshTokenRepository.GetByValue(tx, token)
+	if errors.Is(getTErr, gorm.ErrRecordNotFound) {
+		return auth_error.ErrInvalidToken
+	} else if getTErr != nil {
+		return getTErr
+	}
+	newAccessToken, newRefreshToken, jwtErr := s.JwtService.GenerateUserPair(userId, deviceId)
+	if jwtErr != nil {
+		return jwtErr
+	}
+	savedRefresh.Value = newRefreshToken.Value
+	savedRefresh.ExpiresAt = newRefreshToken.ExpiresAt
+	savedRefresh.CreatedAt = time.Now().UTC()
+	upd_err := s.RefreshTokenRepository.Update(tx, savedRefresh)
+	if upd_err != nil {
+		return upd_err
+	}
+
+	return c.JSON(fiber.Map{
+		"access_token":  newAccessToken,
+		"refresh_token": newRefreshToken.Value,
+		"user":          user,
+	})
 }
 
-func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	return common_error.ErrNotImplemented
 }
