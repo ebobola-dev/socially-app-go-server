@@ -37,11 +37,19 @@ func ParseValidationErrors(err error) ErrorResponse {
 		case "email":
 			fieldErrors[field] = "invalid email format"
 		case "min":
-			fieldErrors[field] = "too short"
+			fieldErrors[field] = "min length " + e.Param()
 		case "max":
-			fieldErrors[field] = "too long"
+			fieldErrors[field] = "max length " + e.Param()
 		case "len":
 			fieldErrors[field] = "length must be " + e.Param()
+		case "gt":
+			fieldErrors[field] = "must be greater than " + e.Param()
+		case "gte":
+			fieldErrors[field] = "must be greater than or equal to" + e.Param()
+		case "lt":
+			fieldErrors[field] = "must be less than " + e.Param()
+		case "lte":
+			fieldErrors[field] = "must be less than or equal to" + e.Param()
 		case "uuid4":
 			fieldErrors[field] = "invalid uuid4 string"
 		case "otp_value":

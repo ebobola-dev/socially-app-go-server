@@ -21,3 +21,10 @@ type IAuthHandler interface {
 	Refresh(c *fiber.Ctx) error
 	Logout(c *fiber.Ctx) error
 }
+
+type IPrivilegeHandler interface {
+	GetAll(c *fiber.Ctx) error
+	GetUsers(c *fiber.Ctx) error
+	Create(c *fiber.Ctx) error
+	Delete(c *fiber.Ctx) error
+}

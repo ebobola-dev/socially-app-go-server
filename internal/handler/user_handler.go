@@ -42,6 +42,7 @@ func (h *UserHandler) CheckUsername(c *fiber.Ctx) error {
 
 func (h *UserHandler) GetById(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
+
 	payload := struct {
 		UserId string `validate:"required,uuid4"`
 	}{
@@ -74,7 +75,7 @@ func (h *UserHandler) DeleteMyAccount(c *fiber.Ctx) error {
 	}
 
 	//% Delete refresh tokens
-	if err := s.RefreshTokenRepository.DeleteByUserId(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
+	if _, err := s.RefreshTokenRepository.DeleteByUserId(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
 		return auth_error.ErrInvalidToken
 	} else if err != nil {
 		return err

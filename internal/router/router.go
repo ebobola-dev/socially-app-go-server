@@ -18,6 +18,7 @@ func New(appScope *scope.AppScope) *fiber.App {
 	registrationHandler := handler.NewRegistrationHandler()
 	authHandler := handler.NewAuthHandler()
 	userHandler := handler.NewUserHandler()
+	privilegesHandler := handler.NewPrivilegeHandler()
 
 	apiV2 := app.Group("/api/v2")
 
@@ -42,6 +43,14 @@ func New(appScope *scope.AppScope) *fiber.App {
 
 		//% must be last
 		users.Get("/:user_id", userHandler.GetById)
+	}
+
+	privileges := apiV2.Group("/privileges", middleware.AuthenticationMiddleware())
+	{
+		privileges.Get("/", middleware.PaginationMiddleware(), privilegesHandler.GetAll)
+		privileges.Get("/users", middleware.PaginationMiddleware(), privilegesHandler.GetUsers)
+		privileges.Post("/", middleware.AllPrivilegesMiddleware("owner"), privilegesHandler.Create)
+		privileges.Delete("/", middleware.AllPrivilegesMiddleware("owner"), privilegesHandler.Delete)
 	}
 
 	return app

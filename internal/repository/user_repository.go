@@ -82,7 +82,14 @@ func (r *UserRepository) Update(tx *gorm.DB, user *model.User) error {
 }
 
 func (r *UserRepository) HardDelete(db *gorm.DB, id uuid.UUID) error {
-	return db.Delete(&model.User{}, "id = ?", id).Error
+	result := db.Delete(&model.User{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (r *UserRepository) ExistsByEmail(tx *gorm.DB, email string) (bool, error) {

@@ -44,5 +44,12 @@ func (r *OtpRepository) Update(tx *gorm.DB, otp *model.Otp) error {
 }
 
 func (r *OtpRepository) Delete(db *gorm.DB, id uuid.UUID) error {
-	return db.Delete(&model.Otp{}, "id = ?", id).Error
+	result := db.Delete(&model.Otp{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

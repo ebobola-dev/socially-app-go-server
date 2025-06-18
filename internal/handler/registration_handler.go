@@ -13,6 +13,7 @@ import (
 	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -215,7 +216,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	}
 
 	if payload.OwnerKey != nil && *payload.OwnerKey == scope.Cfg.OwnerKey {
-		if owners, err := privilegeRepository.GetUsers(tx, "owner"); err != nil {
+		if owners, err := privilegeRepository.GetUsers(tx, pagination.Default(), "owner"); err != nil {
 			return err
 		} else {
 			if len(owners) > 0 {

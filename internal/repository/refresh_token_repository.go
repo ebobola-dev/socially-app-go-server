@@ -13,7 +13,7 @@ type IRefreshTokenRepository interface {
 	Create(db *gorm.DB, user *model.RefreshToken) error
 	Update(tx *gorm.DB, user *model.RefreshToken) error
 	Delete(db *gorm.DB, id string) error
-	DeleteByUserId(db *gorm.DB, userId uuid.UUID) error
+	DeleteByUserId(db *gorm.DB, userId uuid.UUID) (int64, error)
 	DeleteByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) error
 }
 
@@ -53,13 +53,31 @@ func (r *RefreshTokenRepository) Update(tx *gorm.DB, refreshToken *model.Refresh
 }
 
 func (r *RefreshTokenRepository) Delete(db *gorm.DB, id string) error {
-	return db.Delete(&model.RefreshToken{}, "id = ?", id).Error
+	result := db.Delete(&model.RefreshToken{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
-func (r *RefreshTokenRepository) DeleteByUserId(db *gorm.DB, userId uuid.UUID) error {
-	return db.Delete(&model.RefreshToken{}, "user_id = ?", userId).Error
+func (r *RefreshTokenRepository) DeleteByUserId(db *gorm.DB, userId uuid.UUID) (int64, error) {
+	result := db.Delete(&model.RefreshToken{}, "user_id = ?", userId)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return result.RowsAffected, nil
 }
 
 func (r *RefreshTokenRepository) DeleteByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) error {
-	return db.Delete(&model.RefreshToken{}, "user_id = ? AND device_id = ?", userId, deviceId).Error
+	result := db.Delete(&model.RefreshToken{}, "user_id = ? AND device_id = ?", userId, deviceId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
