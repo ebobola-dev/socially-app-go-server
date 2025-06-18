@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -23,6 +24,7 @@ type IUserRepository interface {
 	HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
 	RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error
 	SoftDelete(tx *gorm.DB, id uuid.UUID) error
+	Search(tx *gorm.DB, pagination *pagination.Pagitation, pattern string) ([]model.User, error)
 }
 
 type UserRepository struct{}
@@ -187,4 +189,24 @@ func (r *UserRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
 	}
 
 	return tx.Save(&user).Error
+}
+
+func (r *UserRepository) Search(
+	tx *gorm.DB,
+	pagination *pagination.Pagitation,
+	pattern string,
+) ([]model.User, error) {
+	var users []model.User
+	searchPattern := "%" + pattern + "%"
+	if err := tx.
+		Where("deleted_at IS NULL").
+		Where("username LIKE ? OR fullname LIKE ?", searchPattern, searchPattern).
+		Order("created_at DESC").
+		Offset(pagination.Offset).
+		Limit(pagination.Limit).
+		Find(&users).
+		Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }

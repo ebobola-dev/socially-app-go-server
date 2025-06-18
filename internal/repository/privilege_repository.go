@@ -16,8 +16,8 @@ type IPrivilegeRepository interface {
 	Create(db *gorm.DB, privilege *model.Privilege) error
 	Update(tx *gorm.DB, privilege *model.Privilege) error
 	Delete(db *gorm.DB, id uuid.UUID) error
-	GetUsers(db *gorm.DB, pagination *pagination.Pagintation, privName string) ([]model.User, error)
-	GetAll(tx *gorm.DB, pagination *pagination.Pagintation) ([]model.Privilege, error)
+	GetUsers(db *gorm.DB, pagination *pagination.Pagitation, privName string) ([]model.User, error)
+	GetAll(tx *gorm.DB, pagination *pagination.Pagitation) ([]model.Privilege, error)
 }
 
 type PrivilegeRepository struct{}
@@ -70,7 +70,7 @@ func (r *PrivilegeRepository) Delete(db *gorm.DB, id uuid.UUID) error {
 	return nil
 }
 
-func (r *PrivilegeRepository) GetUsers(tx *gorm.DB, pagination *pagination.Pagintation, privName string) ([]model.User, error) {
+func (r *PrivilegeRepository) GetUsers(tx *gorm.DB, pagination *pagination.Pagitation, privName string) ([]model.User, error) {
 	var users []model.User
 	err := tx.
 		Preload("Privileges").
@@ -89,7 +89,7 @@ func (r *PrivilegeRepository) GetUsers(tx *gorm.DB, pagination *pagination.Pagin
 	return users, nil
 }
 
-func (r *PrivilegeRepository) GetAll(tx *gorm.DB, pagination *pagination.Pagintation) ([]model.Privilege, error) {
+func (r *PrivilegeRepository) GetAll(tx *gorm.DB, pagination *pagination.Pagitation) ([]model.Privilege, error) {
 	var privileges []model.Privilege
 	err := tx.
 		Order("order_index DESC").

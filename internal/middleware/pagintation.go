@@ -17,8 +17,8 @@ func PaginationMiddleware() fiber.Handler {
 	}
 }
 
-func GetPagination(c *fiber.Ctx) *pagination.Pagintation {
-	tx, ok := c.Locals("pagintation").(*pagination.Pagintation)
+func GetPagination(c *fiber.Ctx) *pagination.Pagitation {
+	tx, ok := c.Locals("pagintation").(*pagination.Pagitation)
 	if !ok {
 		panic("pagintation not found in context")
 	}

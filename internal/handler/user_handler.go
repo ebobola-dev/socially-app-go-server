@@ -6,6 +6,7 @@ import (
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
+	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -83,4 +84,32 @@ func (h *UserHandler) DeleteMyAccount(c *fiber.Ctx) error {
 
 	tx.Commit()
 	return auth_error.ErrAccountDeleted
+}
+
+func (h *UserHandler) Search(c *fiber.Ctx) error {
+	tx := middleware.GetTX(c)
+	s := middleware.GetAppScope(c)
+	userId := middleware.GetUserId(c)
+	pagination := middleware.GetPagination(c)
+
+	pattern := c.Query("pattern")
+	users, err := s.UserRepository.Search(tx, pagination, pattern)
+	if err != nil {
+		return err
+	}
+	filteredUsers := make([]model.User, 0, len(users))
+	for _, user := range users {
+		if user.ID != userId {
+			filteredUsers = append(filteredUsers, user)
+		}
+	}
+	return c.JSON(fiber.Map{
+		"pagination": fiber.Map{
+			"offset": pagination.Offset,
+			"limit":  pagination.Limit,
+		},
+		"count":   len(filteredUsers),
+		"pattern": pattern,
+		"users":   filteredUsers,
+	})
 }
