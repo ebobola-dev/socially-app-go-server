@@ -178,7 +178,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 
 	payload := struct {
 		Fullname    *string `json:"fullname" validate:"omitempty,max=32"`
-		DateOfBirth string  `json:"date_of_birth" validate:"required,date"`
+		DateOfBirth string  `json:"date_of_birth" validate:"required,datebt"`
 		Gender      *string `json:"gender"   validate:"omitempty,gender"`
 		AboutMe     *string `json:"about_me" validate:"omitempty,max=256"`
 		Username    string  `json:"username" validate:"required,username_length,username_charset,username_start_digit,username_start_dot"`

@@ -2,11 +2,14 @@ package handler
 
 import (
 	"errors"
+	"time"
 
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
+	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	"github.com/ebobola-dev/socially-app-go-server/internal/util/nullable"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -111,5 +114,59 @@ func (h *UserHandler) Search(c *fiber.Ctx) error {
 		"count":   len(filteredUsers),
 		"pattern": pattern,
 		"users":   filteredUsers,
+	})
+}
+
+func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		Fullname    *string                         `json:"fullname" validate:"omitempty,max=32"`
+		Username    *string                         `json:"username" validate:"omitempty,username_length,username_charset,username_start_digit,username_start_dot"`
+		Gender      nullable.Nullable[model.Gender] `json:"gender" validate:"omitempty,gender"`
+		DateOfBirth *string                         `json:"date_of_birth" validate:"omitempty,datebt"`
+		AboutMe     *string                         `json:"about_me" validate:"omitempty,max=256"`
+	}{}
+	if err := c.BodyParser(&payload); err != nil {
+		return common_error.ErrInvalidJSON
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	tx := middleware.GetTX(c)
+	userId := middleware.GetUserId(c)
+	user, _ := s.UserRepository.GetByID(tx, userId, false)
+
+	hasUpdates := false
+	if payload.Fullname != nil && !nullable.StringEqual(payload.Fullname, user.Fullname) {
+		user.Fullname = payload.Fullname
+		hasUpdates = true
+	}
+	if payload.Username != nil && *payload.Username != user.Username {
+		user.Username = *payload.Username
+		hasUpdates = true
+	}
+	if payload.Gender.Present && !nullable.StringEqual((*string)(payload.Gender.Value), (*string)(user.Gender)) {
+		user.Gender = payload.Gender.Value
+		hasUpdates = true
+	}
+	if payload.DateOfBirth != nil {
+		dob, _ := time.Parse("02.01.2006", *payload.DateOfBirth)
+		if dob != user.DateOfBirth {
+			user.DateOfBirth = dob
+			hasUpdates = true
+		}
+	}
+	if payload.AboutMe != nil && !nullable.StringEqual(payload.AboutMe, user.AboutMe) {
+		user.AboutMe = payload.AboutMe
+		hasUpdates = true
+	}
+	if !hasUpdates {
+		return user_error.ErrNothingToUpdateProfile
+	}
+	if err := s.UserRepository.Update(tx, user); err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"updated_user": user,
 	})
 }

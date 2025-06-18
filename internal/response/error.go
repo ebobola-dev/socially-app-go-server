@@ -56,6 +56,8 @@ func ParseValidationErrors(err error) ErrorResponse {
 			fieldErrors[field] = "otp value must be array of 4 numbers 0-9"
 		case "date":
 			fieldErrors[field] = "must be string date in dd.mm.yyyy format"
+		case "datebt":
+			fieldErrors[field] = "must be string date in dd.mm.yyyy format, before today"
 		case "gender":
 			fieldErrors[field] = "must be string - male or female"
 		case "password":

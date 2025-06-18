@@ -15,6 +15,7 @@ type IUserHandler interface {
 	GetById(c *fiber.Ctx) error
 	DeleteMyAccount(c *fiber.Ctx) error
 	Search(c *fiber.Ctx) error
+	UpdateProfile(c *fiber.Ctx) error
 }
 
 type IAuthHandler interface {
