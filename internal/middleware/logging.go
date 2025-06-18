@@ -26,6 +26,7 @@ func LoggingMiddleware(log logger.ILogger) fiber.Handler {
 		if err != nil {
 			var apiErr api_error.ApiError
 			var valiationErr validator.ValidationErrors
+			var fiberErr *fiber.Error
 			switch {
 			case errors.As(err, &apiErr):
 				log.Warning("%s %s -> %d (%d ms) %s\n", method, path, apiErr.StatusCode(), duration, err)
@@ -34,6 +35,11 @@ func LoggingMiddleware(log logger.ILogger) fiber.Handler {
 				log.Warning("%s %s -> 400 (%d ms) %s\n", method, path, duration, err)
 				errResp := response.ParseValidationErrors(err)
 				return c.Status(fiber.StatusBadRequest).JSON(errResp.ToJSON())
+			case errors.As(err, &fiberErr):
+				log.Error("%s %s -> %d (%d ms) %+v\n", method, path, fiberErr.Code, duration, err)
+				return c.Status(fiberErr.Code).JSON(fiber.Map{
+					"_message": fiberErr,
+				})
 			default:
 				log.Error("%s %s -> 500 (%d ms) %+v\n", method, path, duration, err)
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

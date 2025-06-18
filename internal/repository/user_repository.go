@@ -1,23 +1,28 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type IUserRepository interface {
-	GetByID(db *gorm.DB, ID string) (*model.User, error)
+	GetByID(db *gorm.DB, id uuid.UUID) (*model.User, error)
 	GetByUsername(db *gorm.DB, username string) (*model.User, error)
 	GetByEmail(db *gorm.DB, email string) (*model.User, error)
 	Create(db *gorm.DB, user *model.User) error
+	CreateWithPrivilege(tx *gorm.DB, user *model.User, privName string) error
 	Update(tx *gorm.DB, user *model.User) error
-	HardDelete(db *gorm.DB, id string) error
+	HardDelete(db *gorm.DB, id uuid.UUID) error
 	ExistsByEmail(tx *gorm.DB, email string) (bool, error)
 	ExistsByUsername(tx *gorm.DB, username string) (bool, error)
 	AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error
 	HasAnyPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
 	HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
+	RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error
+	SoftDelete(tx *gorm.DB, id uuid.UUID) error
 }
 
 type UserRepository struct{}
@@ -26,36 +31,53 @@ func NewUserRepository() IUserRepository {
 	return &UserRepository{}
 }
 
-func (r *UserRepository) GetByID(db *gorm.DB, ID string) (*model.User, error) {
+func (r *UserRepository) GetByID(db *gorm.DB, id uuid.UUID) (*model.User, error) {
 	var user model.User
-	err := db.Preload("Privileges").First(&user, "id = ?", ID).Error
+	err := db.Preload("Privileges").First(&user, "id = ? AND deleted_at IS NULL", id).Error
 	return &user, err
 }
 
 func (r *UserRepository) GetByUsername(db *gorm.DB, username string) (*model.User, error) {
 	var user model.User
-	err := db.Preload("Privileges").First(&user, "username = ?", username).Error
+	err := db.Preload("Privileges").First(&user, "username = ? AND deleted_at IS NULL", username).Error
 	return &user, err
 }
 
 func (r *UserRepository) GetByEmail(db *gorm.DB, email string) (*model.User, error) {
 	var user model.User
-	err := db.Preload("Privileges").First(&user, "email = ?", email).Error
+	err := db.Preload("Privileges").First(&user, "email = ? AND deleted_at IS NULL", email).Error
 	return &user, err
 }
 
-func (r *UserRepository) Create(db *gorm.DB, user *model.User) error {
-	if err := db.Create(user).Error; err != nil {
+func (r *UserRepository) Create(tx *gorm.DB, user *model.User) error {
+	if err := tx.Create(user).Error; err != nil {
 		return err
 	}
-	return nil
+	return tx.Preload("Privileges").First(user, "id = ? AND deleted_at IS NULL", user.ID).Error
+}
+
+func (r *UserRepository) CreateWithPrivilege(tx *gorm.DB, user *model.User, privName string) error {
+	if err := tx.Create(user).Error; err != nil {
+		return err
+	}
+
+	var privilege model.Privilege
+	if err := tx.Where("name = ?", privName).First(&privilege).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Model(user).Association("Privileges").Append(&privilege); err != nil {
+		return err
+	}
+
+	return tx.Preload("Privileges").First(user, "id = ? AND deleted_at IS NULL", user.ID).Error
 }
 
 func (r *UserRepository) Update(tx *gorm.DB, user *model.User) error {
 	return tx.Save(user).Error
 }
 
-func (r *UserRepository) HardDelete(db *gorm.DB, id string) error {
+func (r *UserRepository) HardDelete(db *gorm.DB, id uuid.UUID) error {
 	return db.Delete(&model.User{}, "id = ?", id).Error
 }
 
@@ -119,4 +141,39 @@ func (r *UserRepository) HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNam
 	}
 
 	return matchedCount == int64(len(privNames)), nil
+}
+
+func (r *UserRepository) RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error {
+	user := model.User{ID: userId}
+	privilege := model.Privilege{Name: privName}
+	err := tx.
+		Model(&user).
+		Association("Privileges").Delete(privilege)
+	return err
+}
+
+func (r *UserRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
+	var user model.User
+	if err := tx.First(&user, "id = ? AND deleted_at IS NULL", id).Error; err != nil {
+		return err
+	}
+	user.Email = ""
+	user.Username = ""
+	user.Fullname = nil
+	user.AboutMe = nil
+	user.Gender = nil
+	user.DateOfBirth = time.Date(100, 1, 1, 0, 0, 0, 0, time.UTC)
+	user.AvatarType = nil
+	user.AvatarID = nil
+	user.LastSeen = nil
+	user.Privileges = []model.Privilege{}
+
+	now := time.Now()
+	user.DeletedAt = &now
+
+	if err := tx.Model(&user).Association("Privileges").Clear(); err != nil {
+		return err
+	}
+
+	return tx.Save(&user).Error
 }

@@ -13,6 +13,7 @@ type IRegistrationHandler interface {
 type IUserHandler interface {
 	CheckUsername(c *fiber.Ctx) error
 	GetById(c *fiber.Ctx) error
+	DeleteMyAccount(c *fiber.Ctx) error
 }
 
 type IAuthHandler interface {

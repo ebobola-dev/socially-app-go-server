@@ -51,7 +51,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if jwt_err != nil {
 		return jwt_err
 	}
-	saved_rt, get_err := s.RefreshTokenRepository.GetByUIDAndDeviceID(tx, user.ID.String(), deviceId)
+	saved_rt, get_err := s.RefreshTokenRepository.GetByUIDAndDeviceID(tx, user.ID, deviceId)
 	if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		cr_err := s.RefreshTokenRepository.Create(tx, refresh_token)
 		if cr_err != nil {
@@ -102,7 +102,7 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 
 	tx := middleware.GetTX(c)
 
-	user, getUErr := s.UserRepository.GetByID(tx, userId.String())
+	user, getUErr := s.UserRepository.GetByID(tx, userId)
 	if errors.Is(getUErr, gorm.ErrRecordNotFound) {
 		return auth_error.ErrInvalidToken
 	} else if getUErr != nil {
@@ -136,5 +136,15 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	return common_error.ErrNotImplemented
+	s := middleware.GetAppScope(c)
+	tx := middleware.GetTX(c)
+	deviceId := middleware.GetDeviceId(c)
+	userId := middleware.GetUserId(c)
+	if delErr := s.RefreshTokenRepository.DeleteByUIDAndDeviceID(tx, userId, deviceId); errors.Is(delErr, gorm.ErrRecordNotFound) {
+		return auth_error.ErrInvalidToken
+	} else if delErr != nil {
+		return delErr
+	}
+	tx.Commit()
+	return auth_error.ErrLoggetOut
 }

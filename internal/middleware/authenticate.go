@@ -42,7 +42,7 @@ func AuthenticationMiddleware() fiber.Handler {
 			return auth_error.ErrInvalidToken
 		}
 		userId := userData.ID
-		_, get_err := s.UserRepository.GetByID(tx, userId.String())
+		_, get_err := s.UserRepository.GetByID(tx, userId)
 		if get_err != nil {
 			if errors.Is(get_err, gorm.ErrRecordNotFound) {
 				return auth_error.NewUserNotFoundError(userId.String())

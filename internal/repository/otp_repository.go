@@ -2,15 +2,16 @@ package repository
 
 import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type IOtpRepository interface {
 	GetByEmail(db *gorm.DB, email string) (*model.Otp, error)
-	GetByID(db *gorm.DB, ID string) (*model.Otp, error)
+	GetByID(db *gorm.DB, id uuid.UUID) (*model.Otp, error)
 	Create(db *gorm.DB, otp *model.Otp) error
 	Update(tx *gorm.DB, otp *model.Otp) error
-	Delete(db *gorm.DB, id string) error
+	Delete(db *gorm.DB, id uuid.UUID) error
 }
 
 type OtpRepository struct{}
@@ -25,9 +26,9 @@ func (r *OtpRepository) GetByEmail(db *gorm.DB, email string) (*model.Otp, error
 	return &otp, err
 }
 
-func (r *OtpRepository) GetByID(db *gorm.DB, ID string) (*model.Otp, error) {
+func (r *OtpRepository) GetByID(db *gorm.DB, id uuid.UUID) (*model.Otp, error) {
 	var otp model.Otp
-	err := db.First(&otp, "id = ?", ID).Error
+	err := db.First(&otp, "id = ?", id).Error
 	return &otp, err
 }
 
@@ -42,6 +43,6 @@ func (r *OtpRepository) Update(tx *gorm.DB, otp *model.Otp) error {
 	return tx.Save(otp).Error
 }
 
-func (r *OtpRepository) Delete(db *gorm.DB, id string) error {
+func (r *OtpRepository) Delete(db *gorm.DB, id uuid.UUID) error {
 	return db.Delete(&model.Otp{}, "id = ?", id).Error
 }

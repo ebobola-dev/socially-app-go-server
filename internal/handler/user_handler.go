@@ -3,8 +3,10 @@ package handler
 import (
 	"errors"
 
+	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/gofiber/fiber/v2"
@@ -48,12 +50,36 @@ func (h *UserHandler) GetById(c *fiber.Ctx) error {
 	if err := s.Validate.Struct(payload); err != nil {
 		return err
 	}
+	userId := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
-	user, get_err := s.UserRepository.GetByID(tx, payload.UserId)
+	user, get_err := s.UserRepository.GetByID(tx, userId)
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundError("User")
 	}
 	return c.JSON(user)
+}
+
+func (h *UserHandler) DeleteMyAccount(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	userId := middleware.GetUserId(c)
+	tx := middleware.GetTX(c)
+
+	//% Soft delete user
+	if err := s.UserRepository.SoftDelete(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
+		return common_error.NewRecordNotFoundError("User")
+	} else if err != nil {
+		return err
+	}
+
+	//% Delete refresh tokens
+	if err := s.RefreshTokenRepository.DeleteByUserId(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
+		return auth_error.ErrInvalidToken
+	} else if err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return auth_error.ErrAccountDeleted
 }

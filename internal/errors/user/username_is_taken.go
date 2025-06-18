@@ -32,7 +32,7 @@ func NewUsernameTakenError(username string) api_error.ApiError {
 		resp: &response.ErrorResponse{
 			Message: "Username is already taken",
 			Fields: map[string]string{
-				"username": "is already taken",
+				"username": username,
 			},
 		},
 	}

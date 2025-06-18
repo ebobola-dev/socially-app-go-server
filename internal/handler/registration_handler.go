@@ -15,6 +15,7 @@ import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -104,14 +105,15 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 	if err := validate.Struct(payload); err != nil {
 		return err
 	}
+	otpId := uuid.MustParse(payload.OtpId)
 	tx := middleware.GetTX(c)
-	otp, get_err := otpRepository.GetByID(tx, payload.OtpId)
+	otp, get_err := otpRepository.GetByID(tx, otpId)
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundError("OTP code")
 	}
-	del_err := otpRepository.Delete(tx, otp.ID.String())
+	del_err := otpRepository.Delete(tx, otp.ID)
 	if del_err != nil {
 		return del_err
 	}
@@ -140,6 +142,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	scope := middleware.GetAppScope(c)
 	validate := scope.Validate
 	userRepository := scope.UserRepository
+	privilegeRepository := scope.PrivilegeRepository
 	jwtService := scope.JwtService
 	hashService := scope.HashService
 
@@ -179,6 +182,7 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 		AboutMe     *string `json:"about_me" validate:"omitempty,max=256"`
 		Username    string  `json:"username" validate:"required,username_length,username_charset,username_start_digit,username_start_dot"`
 		Password    string  `json:"password" validate:"required,password"`
+		OwnerKey    *string `json:"owner_key,omitempty"`
 	}{}
 	if err := c.BodyParser(&payload); err != nil {
 		return common_error.ErrInvalidJSON
@@ -186,6 +190,13 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	if err := validate.Struct(payload); err != nil {
 		return err
 	}
+
+	if usernameExists, err := userRepository.ExistsByUsername(tx, payload.Username); err != nil {
+		return err
+	} else if usernameExists {
+		return user_error.NewUsernameTakenError(payload.Username)
+	}
+
 	gender := model.GenderFromString(payload.Gender)
 	dob, _ := time.Parse("02.01.2006", payload.DateOfBirth)
 	hashed_password, hash_err := hashService.HashPassword(payload.Password)
@@ -202,9 +213,22 @@ func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 		Username:    payload.Username,
 		Password:    hashed_password,
 	}
-	cr_err := userRepository.Create(tx, new_user)
-	if cr_err != nil {
-		return cr_err
+
+	if payload.OwnerKey != nil && *payload.OwnerKey == scope.Cfg.OwnerKey {
+		if owners, err := privilegeRepository.GetUsers(tx, "owner"); err != nil {
+			return err
+		} else {
+			if len(owners) > 0 {
+				return user_error.ErrOwnerAlreadyRegistered
+			}
+			if err := userRepository.CreateWithPrivilege(tx, new_user, "owner"); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := userRepository.Create(tx, new_user); err != nil {
+			return err
+		}
 	}
 
 	return c.JSON(fiber.Map{

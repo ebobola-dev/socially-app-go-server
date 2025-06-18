@@ -38,6 +38,7 @@ func New(appScope *scope.AppScope) *fiber.App {
 	users := apiV2.Group("/users", middleware.AuthenticationMiddleware())
 	{
 		users.Get("/check_username", userHandler.CheckUsername)
+		users.Delete("/delete_my_account", userHandler.DeleteMyAccount)
 
 		//% must be last
 		users.Get("/:user_id", userHandler.GetById)
