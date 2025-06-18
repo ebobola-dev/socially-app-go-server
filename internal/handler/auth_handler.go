@@ -102,7 +102,7 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 
 	tx := middleware.GetTX(c)
 
-	user, getUErr := s.UserRepository.GetByID(tx, userId)
+	user, getUErr := s.UserRepository.GetByID(tx, userId, false)
 	if errors.Is(getUErr, gorm.ErrRecordNotFound) {
 		return auth_error.ErrInvalidToken
 	} else if getUErr != nil {

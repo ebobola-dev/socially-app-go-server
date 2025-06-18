@@ -52,7 +52,7 @@ func (h *UserHandler) GetById(c *fiber.Ctx) error {
 	}
 	userId := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
-	user, get_err := s.UserRepository.GetByID(tx, userId)
+	user, get_err := s.UserRepository.GetByID(tx, userId, true)
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {

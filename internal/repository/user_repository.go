@@ -9,7 +9,7 @@ import (
 )
 
 type IUserRepository interface {
-	GetByID(db *gorm.DB, id uuid.UUID) (*model.User, error)
+	GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool) (*model.User, error)
 	GetByUsername(db *gorm.DB, username string) (*model.User, error)
 	GetByEmail(db *gorm.DB, email string) (*model.User, error)
 	Create(db *gorm.DB, user *model.User) error
@@ -31,9 +31,13 @@ func NewUserRepository() IUserRepository {
 	return &UserRepository{}
 }
 
-func (r *UserRepository) GetByID(db *gorm.DB, id uuid.UUID) (*model.User, error) {
+func (r *UserRepository) GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool) (*model.User, error) {
 	var user model.User
-	err := db.Preload("Privileges").First(&user, "id = ? AND deleted_at IS NULL", id).Error
+	query := "id = ?"
+	if !includeDeleted {
+		query += " AND deleted_at IS NULL"
+	}
+	err := db.Preload("Privileges").First(&user, query, id).Error
 	return &user, err
 }
 
