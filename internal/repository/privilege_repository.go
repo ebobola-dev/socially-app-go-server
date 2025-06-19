@@ -20,25 +20,25 @@ type IPrivilegeRepository interface {
 	GetAll(tx *gorm.DB, pagination *pagination.Pagitation) ([]model.Privilege, error)
 }
 
-type PrivilegeRepository struct{}
+type privilegeRepository struct{}
 
 func NewPrivilegeRepository() IPrivilegeRepository {
-	return &PrivilegeRepository{}
+	return &privilegeRepository{}
 }
 
-func (r *PrivilegeRepository) GetByName(tx *gorm.DB, name string) (*model.Privilege, error) {
+func (r *privilegeRepository) GetByName(tx *gorm.DB, name string) (*model.Privilege, error) {
 	var privilege model.Privilege
 	err := tx.Where("name = ?", name).First(&privilege).Error
 	return &privilege, err
 }
 
-func (r *PrivilegeRepository) GetByID(tx *gorm.DB, id uuid.UUID) (*model.Privilege, error) {
+func (r *privilegeRepository) GetByID(tx *gorm.DB, id uuid.UUID) (*model.Privilege, error) {
 	var privilege model.Privilege
 	err := tx.Where("id = ?", id).First(&privilege).Error
 	return &privilege, err
 }
 
-func (r *PrivilegeRepository) Create(tx *gorm.DB, privilege *model.Privilege) error {
+func (r *privilegeRepository) Create(tx *gorm.DB, privilege *model.Privilege) error {
 	err := tx.Create(privilege).Error
 	if err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
@@ -55,11 +55,11 @@ func (r *PrivilegeRepository) Create(tx *gorm.DB, privilege *model.Privilege) er
 	return nil
 }
 
-func (r *PrivilegeRepository) Update(tx *gorm.DB, privilege *model.Privilege) error {
+func (r *privilegeRepository) Update(tx *gorm.DB, privilege *model.Privilege) error {
 	return tx.Save(privilege).Error
 }
 
-func (r *PrivilegeRepository) Delete(db *gorm.DB, id uuid.UUID) error {
+func (r *privilegeRepository) Delete(db *gorm.DB, id uuid.UUID) error {
 	result := db.Delete(&model.Privilege{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
@@ -70,7 +70,7 @@ func (r *PrivilegeRepository) Delete(db *gorm.DB, id uuid.UUID) error {
 	return nil
 }
 
-func (r *PrivilegeRepository) GetUsers(tx *gorm.DB, pagination *pagination.Pagitation, privName string) ([]model.User, error) {
+func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination *pagination.Pagitation, privName string) ([]model.User, error) {
 	var users []model.User
 	err := tx.
 		Preload("Privileges").
@@ -89,7 +89,7 @@ func (r *PrivilegeRepository) GetUsers(tx *gorm.DB, pagination *pagination.Pagit
 	return users, nil
 }
 
-func (r *PrivilegeRepository) GetAll(tx *gorm.DB, pagination *pagination.Pagitation) ([]model.Privilege, error) {
+func (r *privilegeRepository) GetAll(tx *gorm.DB, pagination *pagination.Pagitation) ([]model.Privilege, error) {
 	var privileges []model.Privilege
 	err := tx.
 		Order("order_index DESC").

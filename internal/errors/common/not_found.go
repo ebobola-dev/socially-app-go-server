@@ -8,29 +8,34 @@ import (
 )
 
 type RecordNotFoundError struct {
-	msg  string
-	code int
-	resp *response.ErrorResponse
+	serverMessage   string
+	responseMessage string
 }
 
 func (e *RecordNotFoundError) Error() string {
-	return e.msg
+	return e.serverMessage
 }
 
 func (e *RecordNotFoundError) StatusCode() int {
-	return e.code
+	return 404
 }
 
 func (e *RecordNotFoundError) Response() *response.ErrorResponse {
-	return e.resp
+	return &response.ErrorResponse{
+		Message: e.responseMessage,
+	}
 }
 
-func NewRecordNotFoundError(recordName string) api_error.ApiError {
+func NewRecordNotFoundErr(recordName string) api_error.IApiError {
 	return &RecordNotFoundError{
-		msg:  fmt.Sprintf("%s not found", recordName),
-		code: 400,
-		resp: &response.ErrorResponse{
-			Message: fmt.Sprintf("%s not found", recordName),
-		},
+		serverMessage:   fmt.Sprintf("%s not found", recordName),
+		responseMessage: fmt.Sprintf("%s not found", recordName),
+	}
+}
+
+func NewMinioNotFoundErr(path string) api_error.IApiError {
+	return &RecordNotFoundError{
+		serverMessage:   fmt.Sprintf("File not found in minio with path: %s", path),
+		responseMessage: "File not found",
 	}
 }

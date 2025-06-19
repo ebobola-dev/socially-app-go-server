@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	Port      string
-	BuildType BuildType
-	OwnerKey  string
+	Port                   string
+	BuildType              BuildType
+	OwnerKey               string
+	AllowedImageExtensions []string
+	MaxImageSize           int64
 
 	Database *DatabaseConfig
 	JWT      *JWTConfig
@@ -29,12 +31,14 @@ func Initialize() *Config {
 	}
 
 	return &Config{
-		Port:      env.GetString("INTERNAL_PORT"),
-		BuildType: buildType,
-		OwnerKey:  env.GetString("OWNER_KEY"),
-		Database:  LoadDatabaseConfig(),
-		JWT:       LoadJWTConfig(),
-		SMTP:      LoadSMTPConfig(),
-		Minio:     LoadMinioConfig(),
+		Port:                   env.GetString("INTERNAL_PORT"),
+		BuildType:              buildType,
+		OwnerKey:               env.GetString("OWNER_KEY"),
+		AllowedImageExtensions: []string{".jpg", ".jpeg", ".png", ".webp"},
+		MaxImageSize:           7 * 1024 * 1024, //? 7 MB
+		Database:               LoadDatabaseConfig(),
+		JWT:                    LoadJWTConfig(),
+		SMTP:                   LoadSMTPConfig(),
+		Minio:                  LoadMinioConfig(),
 	}
 }

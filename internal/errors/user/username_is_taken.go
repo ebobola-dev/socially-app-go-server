@@ -25,7 +25,7 @@ func (e *UsernameTakenError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewUsernameTakenError(username string) api_error.ApiError {
+func NewUsernameTakenError(username string) api_error.IApiError {
 	return &UsernameTakenError{
 		msg:  fmt.Sprintf("Username is taken: %s", username),
 		code: 400,

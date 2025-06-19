@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func DatabaseSessionMiddleware(db *gorm.DB) fiber.Handler {
+func DatabaseSession(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var handlerErr error
 

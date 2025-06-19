@@ -44,7 +44,7 @@ func (h *PrivilegeHandler) GetUsers(c *fiber.Ctx) error {
 
 	privilege, err := s.PrivilegeRepository.GetByName(tx, privName)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return common_error.NewRecordNotFoundError("Privilege")
+		return common_error.NewRecordNotFoundErr("Privilege")
 	} else if err != nil {
 		return err
 	}
@@ -103,14 +103,14 @@ func (h *PrivilegeHandler) Delete(c *fiber.Ctx) error {
 	privilegeId := uuid.MustParse(payload.Id)
 	tx := middleware.GetTX(c)
 	if privilege, err := s.PrivilegeRepository.GetByID(tx, privilegeId); errors.Is(err, gorm.ErrRecordNotFound) {
-		return common_error.NewRecordNotFoundError("Privilege")
+		return common_error.NewRecordNotFoundErr("Privilege")
 	} else if err != nil {
 		return err
 	} else if privilege.OrderIndex == 100 {
 		return privilege_error.ErrDeletingOwner
 	}
 	if err := s.PrivilegeRepository.Delete(tx, privilegeId); errors.Is(err, gorm.ErrRecordNotFound) {
-		return common_error.NewRecordNotFoundError("Privilege")
+		return common_error.NewRecordNotFoundErr("Privilege")
 	} else if err != nil {
 		return err
 	}

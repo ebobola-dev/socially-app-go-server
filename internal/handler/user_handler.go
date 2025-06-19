@@ -1,7 +1,13 @@
 package handler
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"io"
+	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
@@ -9,6 +15,8 @@ import (
 	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	minio_service "github.com/ebobola-dev/socially-app-go-server/internal/service/minio"
+	image_util "github.com/ebobola-dev/socially-app-go-server/internal/util/image"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/nullable"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -61,7 +69,7 @@ func (h *UserHandler) GetById(c *fiber.Ctx) error {
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
-		return common_error.NewRecordNotFoundError("User")
+		return common_error.NewRecordNotFoundErr("User")
 	}
 	return c.JSON(user)
 }
@@ -73,7 +81,7 @@ func (h *UserHandler) DeleteMyAccount(c *fiber.Ctx) error {
 
 	//% Soft delete user
 	if err := s.UserRepository.SoftDelete(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
-		return common_error.NewRecordNotFoundError("User")
+		return common_error.NewRecordNotFoundErr("User")
 	} else if err != nil {
 		return err
 	}
@@ -163,6 +171,137 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	if !hasUpdates {
 		return user_error.ErrNothingToUpdateProfile
 	}
+	if err := s.UserRepository.Update(tx, user); err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"updated_user": user,
+	})
+}
+
+func (h *UserHandler) UpdatePassword(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		NewPassword string `json:"new_password" validate:"required,password"`
+	}{}
+	if err := c.BodyParser(&payload); err != nil {
+		return common_error.NewInvalidJsonErr("Need json body { 'new_password': string } (at least one letter, at least one digit, between 8 and 32 characters)")
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	tx := middleware.GetTX(c)
+	userId := middleware.GetUserId(c)
+	user, _ := s.UserRepository.GetByID(tx, userId, false)
+
+	hashedPassword, err := s.HashService.HashPassword(payload.NewPassword)
+	if err != nil {
+		return err
+	}
+	user.Password = hashedPassword
+	if err := s.UserRepository.Update(tx, user); err != nil {
+		return err
+	}
+	return c.SendStatus(200)
+}
+
+func (h *UserHandler) UpdateAvatar(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		AvatarType string `validate:"required,avatar_type"`
+	}{
+		AvatarType: c.FormValue("avatar_type"),
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	avatarType := *model.AvatarTypeFromString(&payload.AvatarType)
+	tx := middleware.GetTX(c)
+	userId := middleware.GetUserId(c)
+	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user.AvatarType = &avatarType
+
+	//% if new avatar type is internal
+	if avatarType != model.ExternalAvatar {
+		//% if previous avatar exists - delete it
+		if user.AvatarID != nil {
+			s.MinioService.DeleteAvatar(c.Context(), user.AvatarID.String())
+			user.AvatarID = nil
+		}
+		if err := s.UserRepository.Update(tx, user); err != nil {
+			return err
+		}
+		return c.JSON(fiber.Map{
+			"updated_user": user,
+		})
+	}
+
+	//% if new avatar type is external
+	fileHeader, err := c.FormFile("avatar")
+	if err != nil {
+		return common_error.NewBadRequestErr("avatar field is required (must be a file)")
+	}
+	if fileHeader.Filename == "" || fileHeader.Size == 0 {
+		return common_error.NewBadRequestErr("avatar field must be a file")
+	}
+	if fileHeader.Size > s.Cfg.MaxImageSize {
+		return user_error.NewAvatarTooLargeErr(fileHeader.Size, s.Cfg.MaxImageSize)
+	}
+	extension := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if !slices.Contains(s.Cfg.AllowedImageExtensions, extension) {
+		return user_error.NewBadAvatarExtensionErr(extension, s.Cfg.AllowedImageExtensions)
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	var buffer bytes.Buffer
+	limitedReader := io.LimitReader(file, s.Cfg.MaxImageSize+1)
+	size, err := io.Copy(&buffer, limitedReader)
+	if err != nil {
+		return err
+	}
+	if size > s.Cfg.MaxImageSize {
+		return user_error.NewAvatarTooLargeErr(fileHeader.Size, s.Cfg.MaxImageSize)
+	}
+	data := buffer.Bytes()
+	if err := image_util.ValidateMime(data); err != nil {
+		return user_error.NewInvalidImageErr(err.Error())
+	}
+
+	if err := image_util.ValidateImageDecode(data); err != nil {
+		data, err = image_util.ConvertWithMagick(data)
+		if err != nil {
+			return user_error.NewInvalidImageErr(err.Error())
+		}
+		if err := image_util.ValidateImageDecode(data); err != nil {
+			return user_error.NewInvalidImageErr(err.Error())
+		}
+	} else {
+		data, err = image_util.ConvertToJPEG(data)
+		if err != nil {
+			return err
+		}
+	}
+	spilttedImages, err := image_util.SplitImageBytes(data)
+	if err != nil {
+		return err
+	}
+	newAvatarId := uuid.New()
+	for _, image := range spilttedImages {
+		s.MinioService.Save(
+			c.Context(),
+			minio_service.AvatarsBucket,
+			fmt.Sprintf("%s/%s.jpg", newAvatarId, image.Size.String()),
+			image.Data, "image/jpeg",
+		)
+	}
+	//% if previous avatar exists - delete it
+	if user.AvatarID != nil {
+		s.MinioService.DeleteAvatar(c.Context(), user.AvatarID.String())
+	}
+	user.AvatarID = &newAvatarId
 	if err := s.UserRepository.Update(tx, user); err != nil {
 		return err
 	}

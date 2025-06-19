@@ -12,7 +12,7 @@ import (
 	"github.com/rotisserie/eris"
 )
 
-type MyLogger struct {
+type myLogger struct {
 	cfg         *config.Config
 	msk         *time.Location
 	infoLogger  *log.Logger
@@ -30,7 +30,7 @@ func Create(cfg *config.Config) ILogger {
 	if err != nil {
 		panic(err)
 	}
-	return &MyLogger{
+	return &myLogger{
 		cfg:         cfg,
 		msk:         msk,
 		infoLogger:  log.New(os.Stdout, "", 0),
@@ -44,38 +44,38 @@ func Create(cfg *config.Config) ILogger {
 	}
 }
 
-func (l *MyLogger) timestamp() string {
+func (l *myLogger) timestamp() string {
 	return time.Now().In(l.msk).Format("02.01 15:04:05 MST")
 }
 
-func (l *MyLogger) Debug(format string, args ...any) {
+func (l *myLogger) Debug(format string, args ...any) {
 	if l.cfg.BuildType == config.Development {
 		msg := fmt.Sprintf(format, args...)
 		l.infoLogger.Println(l.debugColor.Sprintf("%s [DEBUG] %s", l.timestamp(), msg))
 	}
 }
 
-func (l *MyLogger) Info(format string, args ...any) {
+func (l *myLogger) Info(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.infoLogger.Println(l.infoColor.Sprintf("%s [INFO] %s", l.timestamp(), msg))
 }
 
-func (l *MyLogger) Warning(format string, args ...any) {
+func (l *myLogger) Warning(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.infoLogger.Println(l.warnColor.Sprintf("%s [WARNING] %s", l.timestamp(), msg))
 }
 
-func (l *MyLogger) Error(format string, args ...any) {
+func (l *myLogger) Error(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.infoLogger.Println(l.errorColor.Sprintf("%s [ERROR] %s", l.timestamp(), msg))
 }
 
-func (l *MyLogger) Exception(err error) {
+func (l *myLogger) Exception(err error) {
 	stack := eris.ToString(err, true)
 	l.errorLogger.Println(l.errorColor.Sprintf("%s [EXCEPTION] %s", l.timestamp(), stack))
 }
 
-func (l *MyLogger) Fatal(err error) {
+func (l *myLogger) Fatal(err error) {
 	stack := eris.ToString(err, true)
 	l.errorLogger.Println(l.fatalColor.Sprintf("%s [FATAL] %s", l.timestamp(), stack))
 	os.Exit(1)

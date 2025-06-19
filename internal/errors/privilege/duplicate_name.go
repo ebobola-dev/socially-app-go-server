@@ -24,7 +24,7 @@ func (e *DuplicateNameError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewDuplicateNameError(name string) api_error.ApiError {
+func NewDuplicateNameError(name string) api_error.IApiError {
 	return &DuplicateNameError{
 		msg: fmt.Sprintf("Duplicate privilege name: %s", name),
 		resp: &response.ErrorResponse{

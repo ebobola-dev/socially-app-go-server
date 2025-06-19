@@ -25,7 +25,7 @@ func (e *AlreadyRegisteredError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewAlreadyRegisteredError(email string) api_error.ApiError {
+func NewAlreadyRegisteredError(email string) api_error.IApiError {
 	return &AlreadyRegisteredError{
 		msg:  "Email already registered",
 		code: 400,

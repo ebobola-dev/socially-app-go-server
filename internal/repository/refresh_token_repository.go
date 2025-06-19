@@ -17,42 +17,42 @@ type IRefreshTokenRepository interface {
 	DeleteByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) error
 }
 
-type RefreshTokenRepository struct{}
+type refreshTokenRepository struct{}
 
 func NewRefreshTokenRepository() IRefreshTokenRepository {
-	return &RefreshTokenRepository{}
+	return &refreshTokenRepository{}
 }
 
-func (r *RefreshTokenRepository) GetByID(db *gorm.DB, ID string) (*model.RefreshToken, error) {
+func (r *refreshTokenRepository) GetByID(db *gorm.DB, ID string) (*model.RefreshToken, error) {
 	var refreshToken model.RefreshToken
 	err := db.First(&refreshToken, "id = ?", ID).Error
 	return &refreshToken, err
 }
 
-func (r *RefreshTokenRepository) GetByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) (*model.RefreshToken, error) {
+func (r *refreshTokenRepository) GetByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) (*model.RefreshToken, error) {
 	var refreshToken model.RefreshToken
 	err := db.First(&refreshToken, "user_id = ? AND device_id = ?", userId, deviceId).Error
 	return &refreshToken, err
 }
 
-func (r *RefreshTokenRepository) GetByValue(db *gorm.DB, value string) (*model.RefreshToken, error) {
+func (r *refreshTokenRepository) GetByValue(db *gorm.DB, value string) (*model.RefreshToken, error) {
 	var refreshToken model.RefreshToken
 	err := db.First(&refreshToken, "value = ?", value).Error
 	return &refreshToken, err
 }
 
-func (r *RefreshTokenRepository) Create(db *gorm.DB, refreshToken *model.RefreshToken) error {
+func (r *refreshTokenRepository) Create(db *gorm.DB, refreshToken *model.RefreshToken) error {
 	if err := db.Create(refreshToken).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RefreshTokenRepository) Update(tx *gorm.DB, refreshToken *model.RefreshToken) error {
+func (r *refreshTokenRepository) Update(tx *gorm.DB, refreshToken *model.RefreshToken) error {
 	return tx.Save(refreshToken).Error
 }
 
-func (r *RefreshTokenRepository) Delete(db *gorm.DB, id string) error {
+func (r *refreshTokenRepository) Delete(db *gorm.DB, id string) error {
 	result := db.Delete(&model.RefreshToken{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
@@ -63,7 +63,7 @@ func (r *RefreshTokenRepository) Delete(db *gorm.DB, id string) error {
 	return nil
 }
 
-func (r *RefreshTokenRepository) DeleteByUserId(db *gorm.DB, userId uuid.UUID) (int64, error) {
+func (r *refreshTokenRepository) DeleteByUserId(db *gorm.DB, userId uuid.UUID) (int64, error) {
 	result := db.Delete(&model.RefreshToken{}, "user_id = ?", userId)
 	if result.Error != nil {
 		return 0, result.Error
@@ -71,7 +71,7 @@ func (r *RefreshTokenRepository) DeleteByUserId(db *gorm.DB, userId uuid.UUID) (
 	return result.RowsAffected, nil
 }
 
-func (r *RefreshTokenRepository) DeleteByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) error {
+func (r *refreshTokenRepository) DeleteByUIDAndDeviceID(db *gorm.DB, userId uuid.UUID, deviceId string) error {
 	result := db.Delete(&model.RefreshToken{}, "user_id = ? AND device_id = ?", userId, deviceId)
 	if result.Error != nil {
 		return result.Error

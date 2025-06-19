@@ -23,7 +23,7 @@ func (e *InvalidLoginDataError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewInvalidLoginData(serverMsg string) api_error.ApiError {
+func NewInvalidLoginData(serverMsg string) api_error.IApiError {
 	return &InvalidLoginDataError{
 		msg:  serverMsg,
 		code: 400,

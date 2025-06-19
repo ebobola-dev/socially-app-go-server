@@ -9,15 +9,15 @@ type IEmailService interface {
 	Send(to string, subject string, message string) error
 }
 
-type EmailService struct {
+type emailService struct {
 	cfg *config.SMTPConfig
 }
 
 func NewEmailService(cfg *config.SMTPConfig) IEmailService {
-	return &EmailService{cfg: cfg}
+	return &emailService{cfg: cfg}
 }
 
-func (s *EmailService) Send(to string, subject string, message string) error {
+func (s *emailService) Send(to string, subject string, message string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.cfg.ADDRESS)
 	m.SetHeader("To", to)

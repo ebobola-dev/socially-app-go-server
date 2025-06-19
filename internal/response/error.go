@@ -62,6 +62,8 @@ func ParseValidationErrors(err error) ErrorResponse {
 			fieldErrors[field] = "must be string - male or female"
 		case "password":
 			fieldErrors[field] = "at least one letter, at least one digit, between 8 and 32 characters"
+		case "avatar_type":
+			fieldErrors[field] = "must be string - (external, avatar1, avatar2, ..., avatar10)"
 		case "username_length":
 			fieldErrors[field] = "length must be between 4 and 32 characters"
 		case "username_charset":

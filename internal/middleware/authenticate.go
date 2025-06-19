@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func AuthenticationMiddleware() fiber.Handler {
+func Authentication() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		//% Ну да костыль и что
 		//% Мир не идеален, этот код тоже

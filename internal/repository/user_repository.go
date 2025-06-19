@@ -27,13 +27,13 @@ type IUserRepository interface {
 	Search(tx *gorm.DB, pagination *pagination.Pagitation, pattern string) ([]model.User, error)
 }
 
-type UserRepository struct{}
+type userRepository struct{}
 
 func NewUserRepository() IUserRepository {
-	return &UserRepository{}
+	return &userRepository{}
 }
 
-func (r *UserRepository) GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool) (*model.User, error) {
+func (r *userRepository) GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool) (*model.User, error) {
 	var user model.User
 	query := "id = ?"
 	if !includeDeleted {
@@ -43,26 +43,26 @@ func (r *UserRepository) GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool)
 	return &user, err
 }
 
-func (r *UserRepository) GetByUsername(db *gorm.DB, username string) (*model.User, error) {
+func (r *userRepository) GetByUsername(db *gorm.DB, username string) (*model.User, error) {
 	var user model.User
 	err := db.Preload("Privileges").First(&user, "username = ? AND deleted_at IS NULL", username).Error
 	return &user, err
 }
 
-func (r *UserRepository) GetByEmail(db *gorm.DB, email string) (*model.User, error) {
+func (r *userRepository) GetByEmail(db *gorm.DB, email string) (*model.User, error) {
 	var user model.User
 	err := db.Preload("Privileges").First(&user, "email = ? AND deleted_at IS NULL", email).Error
 	return &user, err
 }
 
-func (r *UserRepository) Create(tx *gorm.DB, user *model.User) error {
+func (r *userRepository) Create(tx *gorm.DB, user *model.User) error {
 	if err := tx.Create(user).Error; err != nil {
 		return err
 	}
 	return tx.Preload("Privileges").First(user, "id = ? AND deleted_at IS NULL", user.ID).Error
 }
 
-func (r *UserRepository) CreateWithPrivilege(tx *gorm.DB, user *model.User, privName string) error {
+func (r *userRepository) CreateWithPrivilege(tx *gorm.DB, user *model.User, privName string) error {
 	if err := tx.Create(user).Error; err != nil {
 		return err
 	}
@@ -79,11 +79,11 @@ func (r *UserRepository) CreateWithPrivilege(tx *gorm.DB, user *model.User, priv
 	return tx.Preload("Privileges").First(user, "id = ? AND deleted_at IS NULL", user.ID).Error
 }
 
-func (r *UserRepository) Update(tx *gorm.DB, user *model.User) error {
+func (r *userRepository) Update(tx *gorm.DB, user *model.User) error {
 	return tx.Save(user).Error
 }
 
-func (r *UserRepository) HardDelete(db *gorm.DB, id uuid.UUID) error {
+func (r *userRepository) HardDelete(db *gorm.DB, id uuid.UUID) error {
 	result := db.Delete(&model.User{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
@@ -94,7 +94,7 @@ func (r *UserRepository) HardDelete(db *gorm.DB, id uuid.UUID) error {
 	return nil
 }
 
-func (r *UserRepository) ExistsByEmail(tx *gorm.DB, email string) (bool, error) {
+func (r *userRepository) ExistsByEmail(tx *gorm.DB, email string) (bool, error) {
 	var exists bool
 	err := tx.
 		Raw("SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND deleted_at IS NULL)", email).
@@ -102,7 +102,7 @@ func (r *UserRepository) ExistsByEmail(tx *gorm.DB, email string) (bool, error) 
 	return exists, err
 }
 
-func (r *UserRepository) ExistsByUsername(tx *gorm.DB, username string) (bool, error) {
+func (r *userRepository) ExistsByUsername(tx *gorm.DB, username string) (bool, error) {
 	var exists bool
 	err := tx.
 		Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ? AND deleted_at IS NULL)", username).
@@ -110,7 +110,7 @@ func (r *UserRepository) ExistsByUsername(tx *gorm.DB, username string) (bool, e
 	return exists, err
 }
 
-func (r *UserRepository) AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error {
+func (r *userRepository) AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error {
 	user := model.User{ID: userID}
 	privilege := model.Privilege{ID: privID}
 	err := tx.
@@ -120,7 +120,7 @@ func (r *UserRepository) AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid
 	return err
 }
 
-func (r *UserRepository) HasAnyPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error) {
+func (r *userRepository) HasAnyPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error) {
 	if len(privNames) == 0 {
 		return true, nil
 	}
@@ -136,7 +136,7 @@ func (r *UserRepository) HasAnyPrivileges(tx *gorm.DB, userID uuid.UUID, privNam
 	return count > 0, err
 }
 
-func (r *UserRepository) HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error) {
+func (r *userRepository) HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error) {
 	if len(privNames) == 0 {
 		return true, nil
 	}
@@ -156,7 +156,7 @@ func (r *UserRepository) HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNam
 	return matchedCount == int64(len(privNames)), nil
 }
 
-func (r *UserRepository) RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error {
+func (r *userRepository) RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error {
 	user := model.User{ID: userId}
 	privilege := model.Privilege{Name: privName}
 	err := tx.
@@ -165,7 +165,7 @@ func (r *UserRepository) RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName
 	return err
 }
 
-func (r *UserRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
+func (r *userRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
 	var user model.User
 	if err := tx.First(&user, "id = ? AND deleted_at IS NULL", id).Error; err != nil {
 		return err
@@ -191,7 +191,7 @@ func (r *UserRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
 	return tx.Save(&user).Error
 }
 
-func (r *UserRepository) Search(
+func (r *userRepository) Search(
 	tx *gorm.DB,
 	pagination *pagination.Pagitation,
 	pattern string,

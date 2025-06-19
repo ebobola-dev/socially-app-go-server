@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
+
 	scope "github.com/ebobola-dev/socially-app-go-server/internal/di"
 	"github.com/ebobola-dev/socially-app-go-server/internal/router"
 )
 
 func main() {
-	appScope := scope.ConfigureAppScope()
+	ctx := context.Background()
+	appScope := scope.ConfigureAppScope(ctx)
 	log := appScope.Log
 	cfg := appScope.Cfg
 

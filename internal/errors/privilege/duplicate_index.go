@@ -24,7 +24,7 @@ func (e *DuplicateIndexError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewDuplicateIndexError(orderIndex int) api_error.ApiError {
+func NewDuplicateIndexError(orderIndex int) api_error.IApiError {
 	return &DuplicateIndexError{
 		msg: fmt.Sprintf("Duplicate privilege order_index: %d", orderIndex),
 		resp: &response.ErrorResponse{

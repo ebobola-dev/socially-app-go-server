@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func AnyPrivilegesMiddleware(privNames ...string) fiber.Handler {
+func AnyPrivileges(privNames ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userId := GetUserId(c)
 		tx := GetTX(c)
@@ -23,7 +23,7 @@ func AnyPrivilegesMiddleware(privNames ...string) fiber.Handler {
 	}
 }
 
-func AllPrivilegesMiddleware(privNames ...string) fiber.Handler {
+func AllPrivileges(privNames ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userId := GetUserId(c)
 		tx := GetTX(c)

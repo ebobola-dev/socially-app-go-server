@@ -112,7 +112,7 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
-		return common_error.NewRecordNotFoundError("OTP code")
+		return common_error.NewRecordNotFoundErr("OTP code")
 	}
 	del_err := otpRepository.Delete(tx, otp.ID)
 	if del_err != nil {

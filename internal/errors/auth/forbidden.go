@@ -24,7 +24,7 @@ func (e *ForbiddenError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewForbidden(serverMsg, responseMsg string) api_error.ApiError {
+func NewForbidden(serverMsg, responseMsg string) api_error.IApiError {
 	return &ForbiddenError{
 		msg: serverMsg,
 		resp: &response.ErrorResponse{
@@ -33,7 +33,7 @@ func NewForbidden(serverMsg, responseMsg string) api_error.ApiError {
 	}
 }
 
-func NewNoAnyPrivilegeError(requiredPrivileges ...string) api_error.ApiError {
+func NewNoAnyPrivilegeError(requiredPrivileges ...string) api_error.IApiError {
 	return &ForbiddenError{
 		msg: "No one of necessary privileges",
 		resp: &response.ErrorResponse{
@@ -42,7 +42,7 @@ func NewNoAnyPrivilegeError(requiredPrivileges ...string) api_error.ApiError {
 	}
 }
 
-func NewNoAllPrivilegeError(requiredPrivileges ...string) api_error.ApiError {
+func NewNoAllPrivilegeError(requiredPrivileges ...string) api_error.IApiError {
 	return &ForbiddenError{
 		msg: "No privileges",
 		resp: &response.ErrorResponse{

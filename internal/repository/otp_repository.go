@@ -14,36 +14,36 @@ type IOtpRepository interface {
 	Delete(db *gorm.DB, id uuid.UUID) error
 }
 
-type OtpRepository struct{}
+type otpRepository struct{}
 
 func NewOtpRepository() IOtpRepository {
-	return &OtpRepository{}
+	return &otpRepository{}
 }
 
-func (r *OtpRepository) GetByEmail(db *gorm.DB, email string) (*model.Otp, error) {
+func (r *otpRepository) GetByEmail(db *gorm.DB, email string) (*model.Otp, error) {
 	var otp model.Otp
 	err := db.First(&otp, "email_address = ?", email).Error
 	return &otp, err
 }
 
-func (r *OtpRepository) GetByID(db *gorm.DB, id uuid.UUID) (*model.Otp, error) {
+func (r *otpRepository) GetByID(db *gorm.DB, id uuid.UUID) (*model.Otp, error) {
 	var otp model.Otp
 	err := db.First(&otp, "id = ?", id).Error
 	return &otp, err
 }
 
-func (r *OtpRepository) Create(db *gorm.DB, otp *model.Otp) error {
+func (r *otpRepository) Create(db *gorm.DB, otp *model.Otp) error {
 	if err := db.Create(otp).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *OtpRepository) Update(tx *gorm.DB, otp *model.Otp) error {
+func (r *otpRepository) Update(tx *gorm.DB, otp *model.Otp) error {
 	return tx.Save(otp).Error
 }
 
-func (r *OtpRepository) Delete(db *gorm.DB, id uuid.UUID) error {
+func (r *otpRepository) Delete(db *gorm.DB, id uuid.UUID) error {
 	result := db.Delete(&model.Otp{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error

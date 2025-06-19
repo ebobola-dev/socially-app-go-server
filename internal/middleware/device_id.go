@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func DeviceIdMiddleware() fiber.Handler {
+func DeviceId() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		deviceIdHeaders := c.Request().Header.Peek("device_id")
 		if len(deviceIdHeaders) == 0 {

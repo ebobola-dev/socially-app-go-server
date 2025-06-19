@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func ScopeMiddleware(appScope *scope.AppScope) fiber.Handler {
+func AppScope(appScope *scope.AppScope) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		c.Locals("scope", appScope)
 		return c.Next()

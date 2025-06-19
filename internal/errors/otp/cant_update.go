@@ -25,7 +25,7 @@ func (e *CantUpdateOtpError) Response() *response.ErrorResponse {
 	return e.resp
 }
 
-func NewCantUpdateOtpError(secondsDelta int) api_error.ApiError {
+func NewCantUpdateOtpError(secondsDelta int) api_error.IApiError {
 	return &CantUpdateOtpError{
 		msg:  fmt.Sprintf("Can't update(delta: %ds)", secondsDelta),
 		code: 429,

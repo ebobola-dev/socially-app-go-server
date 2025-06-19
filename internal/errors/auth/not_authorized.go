@@ -102,7 +102,7 @@ var ErrAccountDeleted = &NotAuthorizedError{
 	},
 }
 
-func NewUserNotFoundError(userId string) api_error.ApiError {
+func NewUserNotFoundError(userId string) api_error.IApiError {
 	return &NotAuthorizedError{
 		msg:  fmt.Sprintf("!User with id in token not found! (%s)", userId),
 		code: 401,

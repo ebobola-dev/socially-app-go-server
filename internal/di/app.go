@@ -1,12 +1,15 @@
 package scope
 
 import (
+	"context"
+
 	"github.com/ebobola-dev/socially-app-go-server/internal/config"
 	"github.com/ebobola-dev/socially-app-go-server/internal/database"
 	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
 	"github.com/ebobola-dev/socially-app-go-server/internal/service/email"
 	"github.com/ebobola-dev/socially-app-go-server/internal/service/hash"
 	jwt_service "github.com/ebobola-dev/socially-app-go-server/internal/service/jwt"
+	minio_service "github.com/ebobola-dev/socially-app-go-server/internal/service/minio"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/logger"
 	"github.com/ebobola-dev/socially-app-go-server/internal/validation"
 	"github.com/go-playground/validator/v10"
@@ -25,9 +28,10 @@ type AppScope struct {
 	EmailService           email.IEmailService
 	JwtService             jwt_service.IJwtService
 	HashService            hash.IHashService
+	MinioService           minio_service.IMinioService
 }
 
-func ConfigureAppScope() *AppScope {
+func ConfigureAppScope(ctx context.Context) *AppScope {
 	cfg := config.Initialize()
 	return &AppScope{
 		Cfg:                    cfg,
@@ -41,5 +45,6 @@ func ConfigureAppScope() *AppScope {
 		EmailService:           email.NewEmailService(cfg.SMTP),
 		JwtService:             jwt_service.NewJwtService(cfg.JWT),
 		HashService:            hash.NewHashService(),
+		MinioService:           minio_service.NewMinioService(ctx, cfg.Minio),
 	}
 }

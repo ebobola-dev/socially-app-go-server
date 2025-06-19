@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func PaginationMiddleware() fiber.Handler {
+func Pagination() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		pagination, err := pagination.FromFiberCtx(c)
 		if err != nil {

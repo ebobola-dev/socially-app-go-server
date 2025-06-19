@@ -18,12 +18,12 @@ type IJwtService interface {
 	ValidateUserRefresh(refreshTokenString string) (*UserClaims, error)
 }
 
-type JwtService struct {
+type jwtService struct {
 	cfg *config.JWTConfig
 }
 
 func NewJwtService(cfg *config.JWTConfig) IJwtService {
-	return &JwtService{
+	return &jwtService{
 		cfg: cfg,
 	}
 }
@@ -38,7 +38,7 @@ type UserClaims struct {
 	jwt.RegisteredClaims
 }
 
-func (s *JwtService) GenerateRegistration(email string) (string, error) {
+func (s *jwtService) GenerateRegistration(email string) (string, error) {
 	now := time.Now()
 	claims := RegistrationClaims{
 		Email: email,
@@ -51,7 +51,7 @@ func (s *JwtService) GenerateRegistration(email string) (string, error) {
 	return token.SignedString(s.cfg.ACCESS_SERCER_KEY)
 }
 
-func (s *JwtService) ValidateRegistration(tokenString string) (*RegistrationClaims, error) {
+func (s *jwtService) ValidateRegistration(tokenString string) (*RegistrationClaims, error) {
 	claims := &RegistrationClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -68,7 +68,7 @@ func (s *JwtService) ValidateRegistration(tokenString string) (*RegistrationClai
 	return claims, nil
 }
 
-func (s *JwtService) GenerateUserPair(userId uuid.UUID, deviceId string) (string, *model.RefreshToken, error) {
+func (s *jwtService) GenerateUserPair(userId uuid.UUID, deviceId string) (string, *model.RefreshToken, error) {
 	now := time.Now()
 	access_registered_claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute * time.Duration(s.cfg.ACCESS_DURABILITY_MIN))),
@@ -105,7 +105,7 @@ func (s *JwtService) GenerateUserPair(userId uuid.UUID, deviceId string) (string
 	return access_string_token, rt_obj, nil
 }
 
-func (s *JwtService) ValidateUserAccess(accessTokenString string) (*UserClaims, error) {
+func (s *jwtService) ValidateUserAccess(accessTokenString string) (*UserClaims, error) {
 	claims := &UserClaims{}
 	token, err := jwt.ParseWithClaims(accessTokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -122,7 +122,7 @@ func (s *JwtService) ValidateUserAccess(accessTokenString string) (*UserClaims, 
 	return claims, nil
 }
 
-func (s *JwtService) ValidateUserRefresh(refreshTokenString string) (*UserClaims, error) {
+func (s *jwtService) ValidateUserRefresh(refreshTokenString string) (*UserClaims, error) {
 	claims := &UserClaims{}
 	token, err := jwt.ParseWithClaims(refreshTokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

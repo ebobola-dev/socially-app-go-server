@@ -12,7 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func LoggingMiddleware(log logger.ILogger) fiber.Handler {
+func Logging(log logger.ILogger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 
@@ -24,7 +24,7 @@ func LoggingMiddleware(log logger.ILogger) fiber.Handler {
 		duration := time.Since(start).Milliseconds()
 
 		if err != nil {
-			var apiErr api_error.ApiError
+			var apiErr api_error.IApiError
 			var valiationErr validator.ValidationErrors
 			var fiberErr *fiber.Error
 			switch {
@@ -38,7 +38,7 @@ func LoggingMiddleware(log logger.ILogger) fiber.Handler {
 			case errors.As(err, &fiberErr):
 				log.Error("%s %s -> %d (%d ms) %+v\n", method, path, fiberErr.Code, duration, err)
 				return c.Status(fiberErr.Code).JSON(fiber.Map{
-					"_message": fiberErr,
+					"_message": fiberErr.Message,
 				})
 			default:
 				log.Error("%s %s -> 500 (%d ms) %+v\n", method, path, duration, err)

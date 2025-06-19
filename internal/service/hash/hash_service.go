@@ -7,18 +7,18 @@ type IHashService interface {
 	CheckPasswordHash(password, hash string) bool
 }
 
-type HashService struct{}
+type hashService struct{}
 
 func NewHashService() IHashService {
-	return &HashService{}
+	return &hashService{}
 }
 
-func (s *HashService) HashPassword(password string) (string, error) {
+func (s *hashService) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 8)
 	return string(bytes), err
 }
 
-func (s *HashService) CheckPasswordHash(password, hash string) bool {
+func (s *hashService) CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
