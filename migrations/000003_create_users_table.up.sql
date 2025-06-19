@@ -15,9 +15,9 @@ CREATE TABLE users (
     ),
     avatar_id CHAR(36) UNIQUE,
 
-    last_seen DATETIME,
-    deleted_at DATETIME,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    last_seen DATETIME(3),
+    deleted_at DATETIME(3),
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
 );
 
 CREATE UNIQUE INDEX idx_users_email ON users (email);
