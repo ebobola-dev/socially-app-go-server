@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	api_error "github.com/ebobola-dev/socially-app-go-server/internal/errors"
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
 	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
@@ -79,6 +80,8 @@ func (h *userHandler) DeleteMyAccount(c *fiber.Ctx) error {
 	userId := middleware.GetUserId(c)
 	tx := middleware.GetTX(c)
 
+	user, _ := s.UserRepository.GetByID(tx, userId, false)
+
 	//% Soft delete user
 	if err := s.UserRepository.SoftDelete(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundErr("User")
@@ -91,6 +94,14 @@ func (h *userHandler) DeleteMyAccount(c *fiber.Ctx) error {
 		return auth_error.ErrInvalidToken
 	} else if err != nil {
 		return err
+	}
+
+	//% Delete avatar is exists
+	if user.AvatarID != nil {
+		if err := s.MinioService.DeleteAvatar(c.Context(), user.AvatarID.String()); err != nil {
+			s.Log.Exception(err)
+			return api_error.NewUnexceptedErr(err)
+		}
 	}
 
 	tx.Commit()

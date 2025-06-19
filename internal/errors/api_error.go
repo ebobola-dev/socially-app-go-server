@@ -25,3 +25,13 @@ func (e *ApiError) StatusCode() int {
 func (e *ApiError) Response() *response.ErrorResponse {
 	return e.Resp
 }
+
+func NewUnexceptedErr(err error) IApiError {
+	return &ApiError{
+		ServerMessage: err.Error(),
+		Code:          500,
+		Resp: &response.ErrorResponse{
+			Message: "Unexcepted server error",
+		},
+	}
+}
