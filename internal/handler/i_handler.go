@@ -33,3 +33,7 @@ type IPrivilegeHandler interface {
 	Create(c *fiber.Ctx) error
 	Delete(c *fiber.Ctx) error
 }
+
+type IMediaHandler interface {
+	Get(c *fiber.Ctx) error
+}

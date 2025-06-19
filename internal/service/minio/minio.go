@@ -15,9 +15,9 @@ import (
 )
 
 type IMinioService interface {
-	Save(ctx context.Context, bucket string, objectName string, data []byte, contentType string) error
-	Delete(ctx context.Context, bucket string, objectName string) error
-	Get(ctx context.Context, bucket string, objectName string) (*minio.Object, error)
+	Save(ctx context.Context, bucket *Bucket, objectName string, data []byte, contentType string) error
+	Delete(ctx context.Context, bucket *Bucket, objectName string) error
+	Get(ctx context.Context, bucket *Bucket, objectName string) (*minio.Object, minio.ObjectInfo, error)
 	DeleteAvatar(ctx context.Context, avatarID string) error
 }
 
@@ -39,12 +39,12 @@ func NewMinioService(ctx context.Context, cfg *config.MinioConfig) IMinioService
 	}
 
 	for _, bucket := range BucketList {
-		if exists, err := client.BucketExists(ctx, bucket); err != nil {
-			panic(fmt.Errorf("bucketExists(%s): %w", bucket, err))
+		if exists, err := client.BucketExists(ctx, bucket.Name); err != nil {
+			panic(fmt.Errorf("bucketExists(%s): %w", bucket.Name, err))
 		} else if !exists {
-			err = client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+			err = client.MakeBucket(ctx, bucket.Name, minio.MakeBucketOptions{})
 			if err != nil {
-				panic(fmt.Errorf("makeBucket(%s): %w", bucket, err))
+				panic(fmt.Errorf("makeBucket(%s): %w", bucket.Name, err))
 			}
 		}
 	}
@@ -52,15 +52,15 @@ func NewMinioService(ctx context.Context, cfg *config.MinioConfig) IMinioService
 	return svc
 }
 
-func (m *minioService) Save(ctx context.Context, bucket string, objectName string, data []byte, contentType string) error {
-	_, err := m.Client.PutObject(ctx, bucket, objectName, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+func (m *minioService) Save(ctx context.Context, bucket *Bucket, objectName string, data []byte, contentType string) error {
+	_, err := m.Client.PutObject(ctx, bucket.Name, objectName, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	return err
 }
 
-func (m *minioService) Delete(ctx context.Context, bucket string, objectName string) error {
-	err := m.Client.RemoveObject(ctx, bucket, objectName, minio.RemoveObjectOptions{})
+func (m *minioService) Delete(ctx context.Context, bucket *Bucket, objectName string) error {
+	err := m.Client.RemoveObject(ctx, bucket.Name, objectName, minio.RemoveObjectOptions{})
 	if err != nil {
 		if minio.ToErrorResponse(err).StatusCode == 404 {
 			return common_error.NewMinioNotFoundErr(objectName)
@@ -71,15 +71,19 @@ func (m *minioService) Delete(ctx context.Context, bucket string, objectName str
 
 }
 
-func (m *minioService) Get(ctx context.Context, bucket string, objectName string) (*minio.Object, error) {
-	obj, err := m.Client.GetObject(ctx, bucket, objectName, minio.GetObjectOptions{})
+func (m *minioService) Get(ctx context.Context, bucket *Bucket, objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	obj, err := m.Client.GetObject(ctx, bucket.Name, objectName, minio.GetObjectOptions{})
 	if err != nil {
-		if minio.ToErrorResponse(err).StatusCode == 404 {
-			return nil, common_error.NewMinioNotFoundErr(objectName)
-		}
-		return nil, err
+		return nil, minio.ObjectInfo{}, err
 	}
-	return obj, nil
+	stat, statErr := obj.Stat()
+	if statErr != nil {
+		if minio.ToErrorResponse(statErr).StatusCode == 404 {
+			return nil, minio.ObjectInfo{}, common_error.NewMinioNotFoundErr(objectName)
+		}
+		return nil, minio.ObjectInfo{}, statErr
+	}
+	return obj, stat, nil
 }
 
 func (m *minioService) DeleteAvatar(ctx context.Context, avatarID string) error {

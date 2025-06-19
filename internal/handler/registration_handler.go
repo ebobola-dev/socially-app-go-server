@@ -20,14 +20,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type RegistrationHandler struct {
+type registrationHandler struct {
 }
 
 func NewRegistrationHandler() IRegistrationHandler {
-	return &RegistrationHandler{}
+	return &registrationHandler{}
 }
 
-func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
+func (h *registrationHandler) Registration(c *fiber.Ctx) error {
 	scope := middleware.GetAppScope(c)
 	validate := scope.Validate
 	log := scope.Log
@@ -89,7 +89,7 @@ func (h *RegistrationHandler) Registration(c *fiber.Ctx) error {
 	})
 }
 
-func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
+func (h *registrationHandler) VerifyOtp(c *fiber.Ctx) error {
 	scope := middleware.GetAppScope(c)
 	validate := scope.Validate
 	userRepository := scope.UserRepository
@@ -139,7 +139,7 @@ func (h *RegistrationHandler) VerifyOtp(c *fiber.Ctx) error {
 	})
 }
 
-func (h *RegistrationHandler) CompleteRegistration(c *fiber.Ctx) error {
+func (h *registrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	scope := middleware.GetAppScope(c)
 	validate := scope.Validate
 	userRepository := scope.UserRepository

@@ -24,13 +24,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type UserHandler struct{}
+type userHandler struct{}
 
 func NewUserHandler() IUserHandler {
-	return &UserHandler{}
+	return &userHandler{}
 }
 
-func (h *UserHandler) CheckUsername(c *fiber.Ctx) error {
+func (h *userHandler) CheckUsername(c *fiber.Ctx) error {
 	scope := middleware.GetAppScope(c)
 	payload := struct {
 		Username string `validate:"required,username_length,username_charset,username_start_digit,username_start_dot"`
@@ -52,7 +52,7 @@ func (h *UserHandler) CheckUsername(c *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) GetById(c *fiber.Ctx) error {
+func (h *userHandler) GetById(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 
 	payload := struct {
@@ -74,7 +74,7 @@ func (h *UserHandler) GetById(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-func (h *UserHandler) DeleteMyAccount(c *fiber.Ctx) error {
+func (h *userHandler) DeleteMyAccount(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	userId := middleware.GetUserId(c)
 	tx := middleware.GetTX(c)
@@ -97,7 +97,7 @@ func (h *UserHandler) DeleteMyAccount(c *fiber.Ctx) error {
 	return auth_error.ErrAccountDeleted
 }
 
-func (h *UserHandler) Search(c *fiber.Ctx) error {
+func (h *userHandler) Search(c *fiber.Ctx) error {
 	tx := middleware.GetTX(c)
 	s := middleware.GetAppScope(c)
 	userId := middleware.GetUserId(c)
@@ -125,7 +125,7 @@ func (h *UserHandler) Search(c *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
+func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	payload := struct {
 		Fullname    *string                         `json:"fullname" validate:"omitempty,max=32"`
@@ -179,7 +179,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) UpdatePassword(c *fiber.Ctx) error {
+func (h *userHandler) UpdatePassword(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	payload := struct {
 		NewPassword string `json:"new_password" validate:"required,password"`
@@ -205,7 +205,7 @@ func (h *UserHandler) UpdatePassword(c *fiber.Ctx) error {
 	return c.SendStatus(200)
 }
 
-func (h *UserHandler) UpdateAvatar(c *fiber.Ctx) error {
+func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	payload := struct {
 		AvatarType string `validate:"required,avatar_type"`
@@ -309,7 +309,7 @@ func (h *UserHandler) UpdateAvatar(c *fiber.Ctx) error {
 		"updated_user": user,
 	})
 }
-func (h *UserHandler) DeleteAvatar(c *fiber.Ctx) error {
+func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	tx := middleware.GetTX(c)
 	userId := middleware.GetUserId(c)

@@ -15,13 +15,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type AuthHandler struct{}
+type authHandler struct{}
 
 func NewAuthHandler() IAuthHandler {
-	return &AuthHandler{}
+	return &authHandler{}
 }
 
-func (h *AuthHandler) Login(c *fiber.Ctx) error {
+func (h *authHandler) Login(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	payload := struct {
 		Username string `json:"username" validate:"required,username_length,username_charset,username_start_digit,username_start_dot"`
@@ -75,7 +75,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+func (h *authHandler) Refresh(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 
 	authHeaders := c.Request().Header.Peek("Authorization")
@@ -135,7 +135,7 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+func (h *authHandler) Logout(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	tx := middleware.GetTX(c)
 	deviceId := middleware.GetDeviceId(c)

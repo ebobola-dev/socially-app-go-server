@@ -23,6 +23,7 @@ func New(appScope *scope.AppScope) *fiber.App {
 	authHandler := handler.NewAuthHandler()
 	userHandler := handler.NewUserHandler()
 	privilegesHandler := handler.NewPrivilegeHandler()
+	mediaHandler := handler.NewMediaHandler()
 
 	apiV2 := app.Group("/api/v2")
 
@@ -59,6 +60,9 @@ func New(appScope *scope.AppScope) *fiber.App {
 		privileges.Post("/", middleware.AllPrivileges("owner"), privilegesHandler.Create)
 		privileges.Delete("/", middleware.AllPrivileges("owner"), privilegesHandler.Delete)
 	}
+
+	media := apiV2.Group("/media")
+	media.Get("/:bucket/*", mediaHandler.Get)
 
 	return app
 }

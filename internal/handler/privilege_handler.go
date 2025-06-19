@@ -13,13 +13,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type PrivilegeHandler struct{}
+type privilegeHandler struct{}
 
 func NewPrivilegeHandler() IPrivilegeHandler {
-	return &PrivilegeHandler{}
+	return &privilegeHandler{}
 }
 
-func (h *PrivilegeHandler) GetAll(c *fiber.Ctx) error {
+func (h *privilegeHandler) GetAll(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	pagintation := middleware.GetPagination(c)
 	tx := middleware.GetTX(c)
@@ -37,7 +37,7 @@ func (h *PrivilegeHandler) GetAll(c *fiber.Ctx) error {
 	})
 }
 
-func (h *PrivilegeHandler) GetUsers(c *fiber.Ctx) error {
+func (h *privilegeHandler) GetUsers(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	privName := c.Query("privilege")
 	tx := middleware.GetTX(c)
@@ -65,7 +65,7 @@ func (h *PrivilegeHandler) GetUsers(c *fiber.Ctx) error {
 	})
 }
 
-func (h *PrivilegeHandler) Create(c *fiber.Ctx) error {
+func (h *privilegeHandler) Create(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	payload := struct {
 		Name       string `json:"name" validate:"required,min=1,max=64"`
@@ -90,7 +90,7 @@ func (h *PrivilegeHandler) Create(c *fiber.Ctx) error {
 	})
 }
 
-func (h *PrivilegeHandler) Delete(c *fiber.Ctx) error {
+func (h *privilegeHandler) Delete(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	payload := struct {
 		Id string `json:"id" validate:"required,uuid4"`
