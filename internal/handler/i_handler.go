@@ -18,6 +18,7 @@ type IUserHandler interface {
 	UpdateProfile(c *fiber.Ctx) error
 	UpdatePassword(c *fiber.Ctx) error
 	UpdateAvatar(c *fiber.Ctx) error
+	DeleteAvatar(c *fiber.Ctx) error
 }
 
 type IAuthHandler interface {

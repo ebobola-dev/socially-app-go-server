@@ -309,3 +309,22 @@ func (h *UserHandler) UpdateAvatar(c *fiber.Ctx) error {
 		"updated_user": user,
 	})
 }
+func (h *UserHandler) DeleteAvatar(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	tx := middleware.GetTX(c)
+	userId := middleware.GetUserId(c)
+	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user.AvatarType = nil
+	if user.AvatarID != nil {
+		if err := s.MinioService.DeleteAvatar(c.Context(), user.AvatarID.String()); err != nil {
+			return err
+		}
+	}
+	user.AvatarID = nil
+	if err := s.UserRepository.Update(tx, user); err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"updated_user": user,
+	})
+}
