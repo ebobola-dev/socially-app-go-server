@@ -27,8 +27,8 @@ func (o OtpValue) Value() (driver.Value, error) {
 
 type Otp struct {
 	ID           uuid.UUID `gorm:"type:char(36); primaryKey" json:"id"`
-	EmailAddress string    `gorm:"type:varchar(255); uniqueIndex" json:"email"`
-	Value        OtpValue  `gorm:"type:json" json:"value"`
+	EmailAddress string    `gorm:"type:varchar(255); uniqueIndex" json:"-"`
+	Value        OtpValue  `gorm:"type:json" json:"-"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -28,14 +29,40 @@ func NewPrivilegeRepository() IPrivilegeRepository {
 
 func (r *privilegeRepository) GetByName(tx *gorm.DB, name string) (*model.Privilege, error) {
 	var privilege model.Privilege
-	err := tx.Preload("Users").Where("name = ?", name).First(&privilege).Error
-	return &privilege, err
+	if err := tx.Where("name = ?", name).First(&privilege).Error; err != nil {
+		return nil, err
+	}
+
+	var count int64
+	if err := tx.
+		Table("user_privileges").
+		Where("privilege_id = ?", privilege.ID).
+		Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	privilege.UsersCount = int(count)
+
+	return &privilege, nil
 }
 
 func (r *privilegeRepository) GetByID(tx *gorm.DB, id uuid.UUID) (*model.Privilege, error) {
 	var privilege model.Privilege
-	err := tx.Preload("Users").Where("id = ?", id).First(&privilege).Error
-	return &privilege, err
+	if err := tx.Where("id = ?", id).First(&privilege).Error; err != nil {
+		return nil, err
+	}
+
+	var count int64
+	if err := tx.
+		Table("user_privileges").
+		Where("privilege_id = ?", id).
+		Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	privilege.UsersCount = int(count)
+
+	return &privilege, nil
 }
 
 func (r *privilegeRepository) Create(tx *gorm.DB, privilege *model.Privilege) error {
@@ -91,12 +118,39 @@ func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination pagination.Pagita
 
 func (r *privilegeRepository) GetAll(tx *gorm.DB, pagination pagination.Pagitation) ([]model.Privilege, error) {
 	var privileges []model.Privilege
-	err := tx.
-		Preload("Users").
+	if err := tx.
 		Order("order_index DESC").
 		Offset(pagination.Offset).
 		Limit(pagination.Limit).
-		Find(&privileges).Error
+		Find(&privileges).Error; err != nil {
+		return nil, err
+	}
 
-	return privileges, err
+	type CountResult struct {
+		PrivilegeID uuid.UUID
+		Count       int
+	}
+
+	var results []CountResult
+	if err := tx.
+		Table("user_privileges").
+		Select("privilege_id, COUNT(*) as count").
+		Where("privilege_id IN ?", lo.Map(privileges, func(p model.Privilege, _ int) uuid.UUID {
+			return p.ID
+		})).
+		Group("privilege_id").
+		Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[uuid.UUID]int)
+	for _, r := range results {
+		countMap[r.PrivilegeID] = r.Count
+	}
+
+	for i := range privileges {
+		privileges[i].UsersCount = countMap[privileges[i].ID]
+	}
+
+	return privileges, nil
 }

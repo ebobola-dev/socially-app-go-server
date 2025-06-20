@@ -17,7 +17,8 @@ type Privilege struct {
 	OrderIndex int       `gorm:"not null;default:0; uniqueIndex"  serializer:"short"`
 	CreatedAt  time.Time `gorm:"autoCreateTime" serializer:"short"`
 
-	Users []User `gorm:"many2many:user_privileges"`
+	Users      []User `gorm:"many2many:user_privileges"`
+	UsersCount int    `gorm:"-"`
 }
 
 func (p *Privilege) BeforeCreate(tx *gorm.DB) (err error) {
@@ -53,7 +54,9 @@ func (p *Privilege) ToJson(options SerializePrivilegeOptions) map[string]interfa
 		}
 		out[fieldName] = val.Field(i).Interface()
 	}
-	out["users_count"] = len(p.Users)
+	if !options.Short {
+		out["users_count"] = p.UsersCount
+	}
 	return out
 }
 

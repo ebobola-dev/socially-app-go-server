@@ -21,6 +21,7 @@ import (
 	image_util "github.com/ebobola-dev/socially-app-go-server/internal/util/image"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/nullable"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 
 	"github.com/gofiber/fiber/v2"
@@ -127,21 +128,19 @@ func (h *userHandler) Search(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	jsonUsers := make([]map[string]interface{}, len(users))
-	for i, user := range users {
-		jsonUsers[i] = user.ToJson(model.SerializeUserOptions{
-			Safe:  user.ID == userId,
-			Short: true,
-		})
-	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagination.Offset,
 			"limit":  pagination.Limit,
 		},
-		"count":   len(jsonUsers),
+		"count":   len(users),
 		"pattern": pattern,
-		"users":   jsonUsers,
+		"users": lo.Map(users, func(user model.User, _ int) map[string]interface{} {
+			return user.ToJson(model.SerializeUserOptions{
+				Safe:  user.ID == userId,
+				Short: true,
+			})
+		}),
 	})
 }
 

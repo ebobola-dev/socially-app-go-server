@@ -8,6 +8,7 @@ import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 
 	"github.com/gofiber/fiber/v2"
@@ -27,17 +28,15 @@ func (h *privilegeHandler) GetAll(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	jsonPrivileges := make([]map[string]interface{}, len(privileges))
-	for i, privilege := range privileges {
-		jsonPrivileges[i] = privilege.ToJson(model.SerializePrivilegeOptions{})
-	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagintation.Offset,
 			"limit":  pagintation.Limit,
 		},
-		"count":      len(jsonPrivileges),
-		"privileges": jsonPrivileges,
+		"count": len(privileges),
+		"privileges": lo.Map(privileges, func(privilege model.Privilege, _ int) map[string]interface{} {
+			return privilege.ToJson(model.SerializePrivilegeOptions{})
+		}),
 	})
 }
 
@@ -58,21 +57,19 @@ func (h *privilegeHandler) GetUsers(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	jsonUsers := make([]map[string]interface{}, len(users))
-	for i, user := range users {
-		jsonUsers[i] = user.ToJson(model.SerializeUserOptions{
-			Safe:  middleware.GetUserId(c) == user.ID,
-			Short: true,
-		})
-	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagintation.Offset,
 			"limit":  pagintation.Limit,
 		},
 		"privilege": privilege.ToJson(model.SerializePrivilegeOptions{}),
-		"count":     len(jsonUsers),
-		"users":     jsonUsers,
+		"count":     len(users),
+		"users": lo.Map(users, func(user model.User, _ int) map[string]interface{} {
+			return user.ToJson(model.SerializeUserOptions{
+				Safe:  middleware.GetUserId(c) == user.ID,
+				Short: true,
+			})
+		}),
 	})
 }
 

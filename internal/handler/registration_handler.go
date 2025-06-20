@@ -83,10 +83,7 @@ func (h *registrationHandler) Registration(c *fiber.Ctx) error {
 		return email_err
 	}
 	log.Debug("Generated otp: %v", otp.Value)
-	return c.JSON(fiber.Map{
-		"id":         otp.ID,
-		"created_at": otp.CreatedAt,
-	})
+	return c.JSON(otp)
 }
 
 func (h *registrationHandler) VerifyOtp(c *fiber.Ctx) error {
