@@ -10,7 +10,7 @@ import (
 )
 
 type IUserRepository interface {
-	GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool) (*model.User, error)
+	GetByID(db *gorm.DB, id uuid.UUID, options GetUserOptions) (*model.User, error)
 	GetByUsername(db *gorm.DB, username string) (*model.User, error)
 	GetByEmail(db *gorm.DB, email string) (*model.User, error)
 	Create(db *gorm.DB, user *model.User) error
@@ -24,7 +24,7 @@ type IUserRepository interface {
 	HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
 	RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error
 	SoftDelete(tx *gorm.DB, id uuid.UUID) error
-	Search(tx *gorm.DB, pagination *pagination.Pagitation, pattern string, ignoreId ...uuid.UUID) ([]model.User, error)
+	Search(tx *gorm.DB, options SearchUsersOptions) ([]model.User, error)
 }
 
 type userRepository struct{}
@@ -33,25 +33,24 @@ func NewUserRepository() IUserRepository {
 	return &userRepository{}
 }
 
-func (r *userRepository) GetByID(db *gorm.DB, id uuid.UUID, includeDeleted bool) (*model.User, error) {
+func (r *userRepository) GetByID(tx *gorm.DB, id uuid.UUID, options GetUserOptions) (*model.User, error) {
 	var user model.User
-	query := "id = ?"
-	if !includeDeleted {
-		query += " AND deleted_at IS NULL"
+	if !options.IncludeDeleted {
+		tx = tx.Where("deleted_at IS NULL")
 	}
-	err := db.Preload("Privileges").First(&user, query, id).Error
+	err := tx.Preload("Privileges").First(&user, "id = ?", id).Error
 	return &user, err
 }
 
-func (r *userRepository) GetByUsername(db *gorm.DB, username string) (*model.User, error) {
+func (r *userRepository) GetByUsername(tx *gorm.DB, username string) (*model.User, error) {
 	var user model.User
-	err := db.Preload("Privileges").First(&user, "username = ? AND deleted_at IS NULL", username).Error
+	err := tx.Preload("Privileges").First(&user, "username = ? and deleted_at IS NULL", username).Error
 	return &user, err
 }
 
-func (r *userRepository) GetByEmail(db *gorm.DB, email string) (*model.User, error) {
+func (r *userRepository) GetByEmail(tx *gorm.DB, email string) (*model.User, error) {
 	var user model.User
-	err := db.Preload("Privileges").First(&user, "email = ? AND deleted_at IS NULL", email).Error
+	err := tx.Preload("Privileges").First(&user, "email = ? and deleted_at IS NULL", email).Error
 	return &user, err
 }
 
@@ -193,27 +192,39 @@ func (r *userRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
 
 func (r *userRepository) Search(
 	tx *gorm.DB,
-	pagination *pagination.Pagitation,
-	pattern string,
-	ignoreId ...uuid.UUID,
+	options SearchUsersOptions,
 ) ([]model.User, error) {
 	var users []model.User
-	searchPattern := "%" + pattern + "%"
+	searchPattern := "%" + options.Pattern + "%"
 
-	query := tx.
-		Where("deleted_at IS NULL").
-		Where("(username LIKE ? OR fullname LIKE ?)", searchPattern, searchPattern).
-		Order("created_at DESC").
-		Offset(pagination.Offset).
-		Limit(pagination.Limit)
+	tx = tx.Model(&model.User{})
 
-	if len(ignoreId) > 0 {
-		query = query.Where("id <> ?", ignoreId[0])
+	if !options.IncludeDeleted {
+		tx = tx.Where("deleted_at IS NULL")
+	}
+	if options.IgnoreId != uuid.Nil {
+		tx = tx.Where("id <> ?", options.IgnoreId)
 	}
 
-	if err := query.Find(&users).Error; err != nil {
+	if err := tx.
+		Where("(username LIKE ? OR fullname LIKE ?)", searchPattern, searchPattern).
+		Order("created_at DESC").
+		Offset(options.Pagination.Offset).
+		Limit(options.Pagination.Limit).
+		Find(&users).Error; err != nil {
 		return nil, err
 	}
 
 	return users, nil
+}
+
+type GetUserOptions struct {
+	IncludeDeleted bool
+}
+
+type SearchUsersOptions struct {
+	Pagination     pagination.Pagitation
+	Pattern        string
+	IncludeDeleted bool
+	IgnoreId       uuid.UUID
 }

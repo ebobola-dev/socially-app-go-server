@@ -16,6 +16,7 @@ import (
 	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
 	minio_service "github.com/ebobola-dev/socially-app-go-server/internal/service/minio"
 	image_util "github.com/ebobola-dev/socially-app-go-server/internal/util/image"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/nullable"
@@ -66,7 +67,9 @@ func (h *userHandler) GetById(c *fiber.Ctx) error {
 	}
 	userId := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
-	user, get_err := s.UserRepository.GetByID(tx, userId, true)
+	user, get_err := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{
+		IncludeDeleted: true,
+	})
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
@@ -80,7 +83,7 @@ func (h *userHandler) DeleteMyAccount(c *fiber.Ctx) error {
 	userId := middleware.GetUserId(c)
 	tx := middleware.GetTX(c)
 
-	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user, _ := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 
 	//% Soft delete user
 	if err := s.UserRepository.SoftDelete(tx, userId); errors.Is(err, gorm.ErrRecordNotFound) {
@@ -115,7 +118,11 @@ func (h *userHandler) Search(c *fiber.Ctx) error {
 	pagination := middleware.GetPagination(c)
 
 	pattern := c.Query("pattern")
-	users, err := s.UserRepository.Search(tx, pagination, pattern, userId)
+	users, err := s.UserRepository.Search(tx, repository.SearchUsersOptions{
+		Pattern:    pattern,
+		Pagination: pagination,
+		IgnoreId:   userId,
+	})
 	if err != nil {
 		return err
 	}
@@ -147,7 +154,7 @@ func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 	tx := middleware.GetTX(c)
 	userId := middleware.GetUserId(c)
-	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user, _ := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 
 	hasUpdates := false
 	if payload.Fullname != nil && !nullable.StringEqual(payload.Fullname, user.Fullname) {
@@ -197,7 +204,7 @@ func (h *userHandler) UpdatePassword(c *fiber.Ctx) error {
 	}
 	tx := middleware.GetTX(c)
 	userId := middleware.GetUserId(c)
-	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user, _ := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 
 	hashedPassword, err := s.HashService.HashPassword(payload.NewPassword)
 	if err != nil {
@@ -223,7 +230,7 @@ func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 	avatarType := *model.AvatarTypeFromString(&payload.AvatarType)
 	tx := middleware.GetTX(c)
 	userId := middleware.GetUserId(c)
-	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user, _ := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 	user.AvatarType = &avatarType
 
 	//% if new avatar type is internal
@@ -318,7 +325,7 @@ func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	tx := middleware.GetTX(c)
 	userId := middleware.GetUserId(c)
-	user, _ := s.UserRepository.GetByID(tx, userId, false)
+	user, _ := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 	user.AvatarType = nil
 	if user.AvatarID != nil {
 		if err := s.MinioService.DeleteAvatar(c.Context(), user.AvatarID.String()); err != nil {

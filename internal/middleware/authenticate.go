@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
+	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -42,7 +43,7 @@ func Authentication() fiber.Handler {
 			return auth_error.ErrInvalidToken
 		}
 		userId := userData.ID
-		_, get_err := s.UserRepository.GetByID(tx, userId, false)
+		_, get_err := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 		if get_err != nil {
 			if errors.Is(get_err, gorm.ErrRecordNotFound) {
 				return auth_error.NewUserNotFoundError(userId.String())
