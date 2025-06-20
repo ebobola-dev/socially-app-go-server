@@ -24,7 +24,7 @@ type IUserRepository interface {
 	HasAllPrivileges(tx *gorm.DB, userID uuid.UUID, privNames ...string) (bool, error)
 	RemovePrivilege(tx *gorm.DB, userId uuid.UUID, privName string) error
 	SoftDelete(tx *gorm.DB, id uuid.UUID) error
-	Search(tx *gorm.DB, pagination *pagination.Pagitation, pattern string) ([]model.User, error)
+	Search(tx *gorm.DB, pagination *pagination.Pagitation, pattern string, ignoreId ...uuid.UUID) ([]model.User, error)
 }
 
 type userRepository struct{}
@@ -195,18 +195,25 @@ func (r *userRepository) Search(
 	tx *gorm.DB,
 	pagination *pagination.Pagitation,
 	pattern string,
+	ignoreId ...uuid.UUID,
 ) ([]model.User, error) {
 	var users []model.User
 	searchPattern := "%" + pattern + "%"
-	if err := tx.
+
+	query := tx.
 		Where("deleted_at IS NULL").
-		Where("username LIKE ? OR fullname LIKE ?", searchPattern, searchPattern).
+		Where("(username LIKE ? OR fullname LIKE ?)", searchPattern, searchPattern).
 		Order("created_at DESC").
 		Offset(pagination.Offset).
-		Limit(pagination.Limit).
-		Find(&users).
-		Error; err != nil {
+		Limit(pagination.Limit)
+
+	if len(ignoreId) > 0 {
+		query = query.Where("id <> ?", ignoreId[0])
+	}
+
+	if err := query.Find(&users).Error; err != nil {
 		return nil, err
 	}
+
 	return users, nil
 }

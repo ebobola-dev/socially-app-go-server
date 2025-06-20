@@ -115,24 +115,18 @@ func (h *userHandler) Search(c *fiber.Ctx) error {
 	pagination := middleware.GetPagination(c)
 
 	pattern := c.Query("pattern")
-	users, err := s.UserRepository.Search(tx, pagination, pattern)
+	users, err := s.UserRepository.Search(tx, pagination, pattern, userId)
 	if err != nil {
 		return err
-	}
-	filteredUsers := make([]model.User, 0, len(users))
-	for _, user := range users {
-		if user.ID != userId {
-			filteredUsers = append(filteredUsers, user)
-		}
 	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagination.Offset,
 			"limit":  pagination.Limit,
 		},
-		"count":   len(filteredUsers),
+		"count":   len(users),
 		"pattern": pattern,
-		"users":   filteredUsers,
+		"users":   users,
 	})
 }
 
