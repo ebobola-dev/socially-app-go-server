@@ -24,7 +24,8 @@ type User struct {
 	AvatarType *AvatarType `gorm:"type:enum('external','avatar1','avatar2', 'avatar3', 'avatar4', 'avatar5', 'avatar6', 'avatar7', 'avatar8', 'avatar9', 'avatar10');" serializer:"short"`
 	AvatarID   *uuid.UUID  `gorm:"type:char(36);uniqueIndex" serializer:"short"`
 
-	Privileges []Privilege `gorm:"many2many:user_privileges"`
+	Privileges     []Privilege     `gorm:"many2many:user_privileges"`
+	UserPrivileges []UserPrivilege `gorm:"foreignKey:UserID"`
 
 	LastSeen *time.Time `serializer:""`
 
@@ -68,9 +69,9 @@ func (u *User) ToJson(options SerializeUserOptions) map[string]interface{} {
 		}
 		out[fieldName] = val.Field(i).Interface()
 	}
-	privileges := make([]string, len(u.Privileges))
-	for i, privilege := range u.Privileges {
-		privileges[i] = privilege.Name
+	privileges := make([]string, len(u.UserPrivileges))
+	for i, userPrivilege := range u.UserPrivileges {
+		privileges[i] = userPrivilege.Privilege.Name
 	}
 	if !options.Short {
 		out["privileges"] = privileges

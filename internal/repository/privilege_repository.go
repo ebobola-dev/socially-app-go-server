@@ -117,11 +117,6 @@ func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination pagination.Pagina
 func (r *privilegeRepository) GetAll(tx *gorm.DB, options GetPrivilegesListOptions) ([]model.Privilege, error) {
 	var privileges []model.Privilege
 	query := tx.Model(&model.Privilege{})
-	if options.FilterUserId != uuid.Nil {
-		query = query.
-			Joins("JOIN user_privileges ON user_privileges.privilege_id = privileges.id").
-			Where("user_privileges.user_id = ?", options.FilterUserId)
-	}
 	if err := query.
 		Order("order_index DESC").
 		Offset(options.Pagination.Offset).
@@ -162,7 +157,6 @@ type GetPrivilegeOptions struct {
 }
 
 type GetPrivilegesListOptions struct {
-	Pagination   pagination.Pagination
-	CountUsers   bool
-	FilterUserId uuid.UUID
+	Pagination pagination.Pagination
+	CountUsers bool
 }

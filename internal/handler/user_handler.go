@@ -362,10 +362,10 @@ func (h *userHandler) GetPrivileges(c *fiber.Ctx) error {
 	targetUid := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
 	pagination := middleware.GetPagination(c)
-	privileges, err := s.PrivilegeRepository.GetAll(tx, repository.GetPrivilegesListOptions{
-		Pagination:   pagination,
-		FilterUserId: targetUid,
-		CountUsers:   true,
+	privileges, err := s.UserRepository.GetPrivileges(tx, repository.GetUserPrivilegesOptions{
+		Pagination: pagination,
+		UserID:     targetUid,
+		CountUsers: true,
 	})
 	if err != nil {
 		return err
@@ -374,8 +374,8 @@ func (h *userHandler) GetPrivileges(c *fiber.Ctx) error {
 		"user_id":    targetUid,
 		"pagination": pagination.ToMap(),
 		"count":      len(privileges),
-		"privileges": lo.Map(privileges, func(privilege model.Privilege, _ int) map[string]interface{} {
-			return privilege.ToJson(model.SerializePrivilegeOptions{})
+		"privileges": lo.Map(privileges, func(userPrivilege model.UserPrivilege, _ int) map[string]interface{} {
+			return userPrivilege.ToJsonPrivilege()
 		}),
 	})
 }
