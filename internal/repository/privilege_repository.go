@@ -28,13 +28,13 @@ func NewPrivilegeRepository() IPrivilegeRepository {
 
 func (r *privilegeRepository) GetByName(tx *gorm.DB, name string) (*model.Privilege, error) {
 	var privilege model.Privilege
-	err := tx.Where("name = ?", name).First(&privilege).Error
+	err := tx.Preload("Users").Where("name = ?", name).First(&privilege).Error
 	return &privilege, err
 }
 
 func (r *privilegeRepository) GetByID(tx *gorm.DB, id uuid.UUID) (*model.Privilege, error) {
 	var privilege model.Privilege
-	err := tx.Where("id = ?", id).First(&privilege).Error
+	err := tx.Preload("Users").Where("id = ?", id).First(&privilege).Error
 	return &privilege, err
 }
 
@@ -92,6 +92,7 @@ func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination pagination.Pagita
 func (r *privilegeRepository) GetAll(tx *gorm.DB, pagination pagination.Pagitation) ([]model.Privilege, error) {
 	var privileges []model.Privilege
 	err := tx.
+		Preload("Users").
 		Order("order_index DESC").
 		Offset(pagination.Offset).
 		Limit(pagination.Limit).

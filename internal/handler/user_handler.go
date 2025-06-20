@@ -127,12 +127,12 @@ func (h *userHandler) Search(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	var jsonUsers []map[string]interface{}
-	for _, user := range users {
-		jsonUsers = append(jsonUsers, user.ToJson(model.SerializeUserOptions{
+	jsonUsers := make([]map[string]interface{}, len(users))
+	for i, user := range users {
+		jsonUsers[i] = user.ToJson(model.SerializeUserOptions{
 			Safe:  user.ID == userId,
 			Short: true,
-		}))
+		})
 	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
@@ -195,7 +195,7 @@ func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"updated_user": user,
+		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
 	})
 }
 
@@ -252,7 +252,7 @@ func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 			return err
 		}
 		return c.JSON(fiber.Map{
-			"updated_user": user,
+			"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
 		})
 	}
 
@@ -326,7 +326,7 @@ func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"updated_user": user,
+		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
 	})
 }
 func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
@@ -345,6 +345,6 @@ func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"updated_user": user,
+		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
 	})
 }

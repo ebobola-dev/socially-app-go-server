@@ -233,6 +233,6 @@ func (h *registrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"created_user": new_user,
+		"created_user": new_user.ToJson(model.SerializeUserOptions{Safe: true}),
 	})
 }

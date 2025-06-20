@@ -68,14 +68,13 @@ func (u *User) ToJson(options SerializeUserOptions) map[string]interface{} {
 		}
 		out[fieldName] = val.Field(i).Interface()
 	}
-	var privileges []string
-	for _, privilege := range u.Privileges {
-		privileges = append(privileges, privilege.Name)
+	privileges := make([]string, len(u.Privileges))
+	for i, privilege := range u.Privileges {
+		privileges[i] = privilege.Name
 	}
 	if !options.Short {
 		out["privileges"] = privileges
 	}
-
 	return out
 }
 

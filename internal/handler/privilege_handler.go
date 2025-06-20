@@ -27,13 +27,17 @@ func (h *privilegeHandler) GetAll(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	jsonPrivileges := make([]map[string]interface{}, len(privileges))
+	for i, privilege := range privileges {
+		jsonPrivileges[i] = privilege.ToJson(model.SerializePrivilegeOptions{})
+	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagintation.Offset,
 			"limit":  pagintation.Limit,
 		},
-		"count":      len(privileges),
-		"privileges": privileges,
+		"count":      len(jsonPrivileges),
+		"privileges": jsonPrivileges,
 	})
 }
 
@@ -54,14 +58,21 @@ func (h *privilegeHandler) GetUsers(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	jsonUsers := make([]map[string]interface{}, len(users))
+	for i, user := range users {
+		jsonUsers[i] = user.ToJson(model.SerializeUserOptions{
+			Safe:  middleware.GetUserId(c) == user.ID,
+			Short: true,
+		})
+	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagintation.Offset,
 			"limit":  pagintation.Limit,
 		},
-		"privilege": privilege,
-		"count":     len(users),
-		"users":     users,
+		"privilege": privilege.ToJson(model.SerializePrivilegeOptions{}),
+		"count":     len(jsonUsers),
+		"users":     jsonUsers,
 	})
 }
 
@@ -86,7 +97,7 @@ func (h *privilegeHandler) Create(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"created_privilege": newPrivilege,
+		"created_privilege": newPrivilege.ToJson(model.SerializePrivilegeOptions{}),
 	})
 }
 
