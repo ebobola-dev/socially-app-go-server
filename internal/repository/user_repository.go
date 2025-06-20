@@ -223,7 +223,7 @@ type GetUserOptions struct {
 }
 
 type SearchUsersOptions struct {
-	Pagination     pagination.Pagitation
+	Pagination     pagination.Pagination
 	Pattern        string
 	IncludeDeleted bool
 	IgnoreId       uuid.UUID

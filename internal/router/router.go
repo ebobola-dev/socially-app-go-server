@@ -50,6 +50,7 @@ func New(appScope *scope.AppScope) *fiber.App {
 		users.Patch("/password", userHandler.UpdatePassword)
 		users.Patch("/avatar", middleware.ContentType("multipart/form-data"), userHandler.UpdateAvatar)
 		users.Delete("/avatar", userHandler.DeleteAvatar)
+		users.Get("/privileges", middleware.Pagination(), userHandler.GetPrivileges)
 		users.Get("/:user_id", userHandler.GetById) //% must be last
 	}
 

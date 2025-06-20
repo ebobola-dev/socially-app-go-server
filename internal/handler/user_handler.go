@@ -328,6 +328,7 @@ func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
 	})
 }
+
 func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	tx := middleware.GetTX(c)
@@ -345,5 +346,36 @@ func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{
 		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
+	})
+}
+
+func (h *userHandler) GetPrivileges(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		UserId string `validate:"required,uuid4"`
+	}{
+		UserId: c.Query("user_id"),
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	targetUid := uuid.MustParse(payload.UserId)
+	tx := middleware.GetTX(c)
+	pagination := middleware.GetPagination(c)
+	privileges, err := s.PrivilegeRepository.GetAll(tx, repository.GetPrivilegesListOptions{
+		Pagination:   pagination,
+		FilterUserId: targetUid,
+		CountUsers:   true,
+	})
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"user_id":    targetUid,
+		"pagination": pagination.ToMap(),
+		"count":      len(privileges),
+		"privileges": lo.Map(privileges, func(privilege model.Privilege, _ int) map[string]interface{} {
+			return privilege.ToJson(model.SerializePrivilegeOptions{})
+		}),
 	})
 }

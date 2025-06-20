@@ -7,22 +7,29 @@ import (
 
 var defaultLimit = 10
 
-type Pagitation struct {
+type Pagination struct {
 	Offset int `json:"offset"`
 	Limit  int `json:"limit"`
 }
 
-func FromFiberCtx(c *fiber.Ctx) (Pagitation, error) {
+func (p *Pagination) ToMap() map[string]int {
+	return map[string]int{
+		"offset": p.Offset,
+		"limit":  p.Limit,
+	}
+}
+
+func FromFiberCtx(c *fiber.Ctx) (Pagination, error) {
 	offset := c.QueryInt("offset", 0)
 	limit := c.QueryInt("limit", defaultLimit)
 
 	if offset < 0 || limit < 0 {
-		return Pagitation{}, common_error.ErrInvalidPagintation
+		return Pagination{}, common_error.ErrInvalidPagintation
 	}
 
-	return Pagitation{Offset: offset, Limit: limit}, nil
+	return Pagination{Offset: offset, Limit: limit}, nil
 }
 
-func Default() Pagitation {
-	return Pagitation{Offset: 0, Limit: defaultLimit}
+func Default() Pagination {
+	return Pagination{Offset: 0, Limit: defaultLimit}
 }

@@ -7,6 +7,7 @@ import (
 	privilege_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/privilege"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
+	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -24,7 +25,10 @@ func (h *privilegeHandler) GetAll(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
 	pagintation := middleware.GetPagination(c)
 	tx := middleware.GetTX(c)
-	privileges, err := s.PrivilegeRepository.GetAll(tx, pagintation)
+	privileges, err := s.PrivilegeRepository.GetAll(tx, repository.GetPrivilegesListOptions{
+		Pagination: pagintation,
+		CountUsers: true,
+	})
 	if err != nil {
 		return err
 	}
@@ -45,7 +49,9 @@ func (h *privilegeHandler) GetUsers(c *fiber.Ctx) error {
 	privName := c.Query("privilege")
 	tx := middleware.GetTX(c)
 
-	privilege, err := s.PrivilegeRepository.GetByName(tx, privName)
+	privilege, err := s.PrivilegeRepository.GetByName(tx, privName, repository.GetPrivilegeOptions{
+		CountUsers: true,
+	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundErr("Privilege")
 	} else if err != nil {
@@ -110,7 +116,9 @@ func (h *privilegeHandler) Delete(c *fiber.Ctx) error {
 	}
 	privilegeId := uuid.MustParse(payload.Id)
 	tx := middleware.GetTX(c)
-	if privilege, err := s.PrivilegeRepository.GetByID(tx, privilegeId); errors.Is(err, gorm.ErrRecordNotFound) {
+	if privilege, err := s.PrivilegeRepository.GetByID(tx, privilegeId, repository.GetPrivilegeOptions{
+		CountUsers: true,
+	}); errors.Is(err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundErr("Privilege")
 	} else if err != nil {
 		return err

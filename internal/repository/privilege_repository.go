@@ -12,13 +12,13 @@ import (
 )
 
 type IPrivilegeRepository interface {
-	GetByName(db *gorm.DB, name string) (*model.Privilege, error)
-	GetByID(db *gorm.DB, ID uuid.UUID) (*model.Privilege, error)
+	GetByName(db *gorm.DB, name string, options GetPrivilegeOptions) (*model.Privilege, error)
+	GetByID(db *gorm.DB, ID uuid.UUID, options GetPrivilegeOptions) (*model.Privilege, error)
 	Create(db *gorm.DB, privilege *model.Privilege) error
 	Update(tx *gorm.DB, privilege *model.Privilege) error
 	Delete(db *gorm.DB, id uuid.UUID) error
-	GetUsers(db *gorm.DB, pagination pagination.Pagitation, privName string) ([]model.User, error)
-	GetAll(tx *gorm.DB, pagination pagination.Pagitation) ([]model.Privilege, error)
+	GetUsers(db *gorm.DB, pagination pagination.Pagination, privName string) ([]model.User, error)
+	GetAll(tx *gorm.DB, options GetPrivilegesListOptions) ([]model.Privilege, error)
 }
 
 type privilegeRepository struct{}
@@ -27,41 +27,39 @@ func NewPrivilegeRepository() IPrivilegeRepository {
 	return &privilegeRepository{}
 }
 
-func (r *privilegeRepository) GetByName(tx *gorm.DB, name string) (*model.Privilege, error) {
+func (r *privilegeRepository) GetByName(tx *gorm.DB, name string, options GetPrivilegeOptions) (*model.Privilege, error) {
 	var privilege model.Privilege
 	if err := tx.Where("name = ?", name).First(&privilege).Error; err != nil {
 		return nil, err
 	}
-
-	var count int64
-	if err := tx.
-		Table("user_privileges").
-		Where("privilege_id = ?", privilege.ID).
-		Count(&count).Error; err != nil {
-		return nil, err
+	if options.CountUsers {
+		var count int64
+		if err := tx.
+			Table("user_privileges").
+			Where("privilege_id = ?", privilege.ID).
+			Count(&count).Error; err != nil {
+			return nil, err
+		}
+		privilege.UsersCount = int(count)
 	}
-
-	privilege.UsersCount = int(count)
-
 	return &privilege, nil
 }
 
-func (r *privilegeRepository) GetByID(tx *gorm.DB, id uuid.UUID) (*model.Privilege, error) {
+func (r *privilegeRepository) GetByID(tx *gorm.DB, id uuid.UUID, options GetPrivilegeOptions) (*model.Privilege, error) {
 	var privilege model.Privilege
 	if err := tx.Where("id = ?", id).First(&privilege).Error; err != nil {
 		return nil, err
 	}
-
-	var count int64
-	if err := tx.
-		Table("user_privileges").
-		Where("privilege_id = ?", id).
-		Count(&count).Error; err != nil {
-		return nil, err
+	if options.CountUsers {
+		var count int64
+		if err := tx.
+			Table("user_privileges").
+			Where("privilege_id = ?", id).
+			Count(&count).Error; err != nil {
+			return nil, err
+		}
+		privilege.UsersCount = int(count)
 	}
-
-	privilege.UsersCount = int(count)
-
 	return &privilege, nil
 }
 
@@ -97,7 +95,7 @@ func (r *privilegeRepository) Delete(db *gorm.DB, id uuid.UUID) error {
 	return nil
 }
 
-func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination pagination.Pagitation, privName string) ([]model.User, error) {
+func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination pagination.Pagination, privName string) ([]model.User, error) {
 	var users []model.User
 	err := tx.
 		Preload("Privileges").
@@ -116,41 +114,55 @@ func (r *privilegeRepository) GetUsers(tx *gorm.DB, pagination pagination.Pagita
 	return users, nil
 }
 
-func (r *privilegeRepository) GetAll(tx *gorm.DB, pagination pagination.Pagitation) ([]model.Privilege, error) {
+func (r *privilegeRepository) GetAll(tx *gorm.DB, options GetPrivilegesListOptions) ([]model.Privilege, error) {
 	var privileges []model.Privilege
-	if err := tx.
+	query := tx.Model(&model.Privilege{})
+	if options.FilterUserId != uuid.Nil {
+		query = query.
+			Joins("JOIN user_privileges ON user_privileges.privilege_id = privileges.id").
+			Where("user_privileges.user_id = ?", options.FilterUserId)
+	}
+	if err := query.
 		Order("order_index DESC").
-		Offset(pagination.Offset).
-		Limit(pagination.Limit).
+		Offset(options.Pagination.Offset).
+		Limit(options.Pagination.Limit).
 		Find(&privileges).Error; err != nil {
 		return nil, err
 	}
-
-	type CountResult struct {
-		PrivilegeID uuid.UUID
-		Count       int
-	}
-
-	var results []CountResult
-	if err := tx.
-		Table("user_privileges").
-		Select("privilege_id, COUNT(*) as count").
-		Where("privilege_id IN ?", lo.Map(privileges, func(p model.Privilege, _ int) uuid.UUID {
-			return p.ID
-		})).
-		Group("privilege_id").
-		Find(&results).Error; err != nil {
-		return nil, err
-	}
-
-	countMap := make(map[uuid.UUID]int)
-	for _, r := range results {
-		countMap[r.PrivilegeID] = r.Count
-	}
-
-	for i := range privileges {
-		privileges[i].UsersCount = countMap[privileges[i].ID]
+	if options.CountUsers && len(privileges) > 0 {
+		type CountResult struct {
+			PrivilegeID uuid.UUID
+			Count       int
+		}
+		var results []CountResult
+		if err := tx.
+			Table("user_privileges").
+			Select("privilege_id, COUNT(*) as count").
+			Where("privilege_id IN ?", lo.Map(privileges, func(p model.Privilege, _ int) uuid.UUID {
+				return p.ID
+			})).
+			Group("privilege_id").
+			Find(&results).Error; err != nil {
+			return nil, err
+		}
+		countMap := make(map[uuid.UUID]int)
+		for _, r := range results {
+			countMap[r.PrivilegeID] = r.Count
+		}
+		for i := range privileges {
+			privileges[i].UsersCount = countMap[privileges[i].ID]
+		}
 	}
 
 	return privileges, nil
+}
+
+type GetPrivilegeOptions struct {
+	CountUsers bool
+}
+
+type GetPrivilegesListOptions struct {
+	Pagination   pagination.Pagination
+	CountUsers   bool
+	FilterUserId uuid.UUID
 }
