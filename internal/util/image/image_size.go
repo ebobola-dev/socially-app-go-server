@@ -47,18 +47,18 @@ func AllSizesOrdered() []ImageSize {
 	return []ImageSize{Size256, Size512, Size1024, SizeOriginal}
 }
 
-func GetOrderedSizeFrom(requested ImageSize) []ImageSize {
-	if requested == SizeOriginal {
-		return []ImageSize{SizeOriginal}
-	}
-	all := AllSizesOrdered()
-	for i, sz := range all {
-		if sz == requested {
-			return all[i:]
-		}
-	}
-	return []ImageSize{SizeOriginal}
-}
+// func GetOrderedSizeFrom(requested ImageSize) []ImageSize {
+// 	if requested == SizeOriginal {
+// 		return []ImageSize{SizeOriginal}
+// 	}
+// 	all := AllSizesOrdered()
+// 	for i, sz := range all {
+// 		if sz == requested {
+// 			return all[i:]
+// 		}
+// 	}
+// 	return []ImageSize{SizeOriginal}
+// }
 
 var ImageSizesList = []ImageSize{Size256, Size512, Size1024, SizeOriginal}
 
@@ -95,7 +95,7 @@ func SizeFromPath(path string) (ImageSize, error) {
 	filename := splitted[len(splitted)-1]
 	splittedFilename := strings.Split(filename, ".")
 	if len(splittedFilename) < 2 {
-		return SizeOriginal, errors.New("Unable to get size, no dot in filename")
+		return SizeOriginal, errors.New("unable to get size, no dot in filename")
 	}
 	strSize := splittedFilename[0]
 	size, sizeErr := ParseImageSize(strSize)

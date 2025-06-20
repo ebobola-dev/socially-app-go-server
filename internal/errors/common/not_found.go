@@ -33,9 +33,9 @@ func NewRecordNotFoundErr(recordName string) api_error.IApiError {
 	}
 }
 
-func NewMinioNotFoundErr(path string) api_error.IApiError {
+func NewMinioNotFoundErr(bucket, path string) api_error.IApiError {
 	return &RecordNotFoundError{
-		serverMessage:   fmt.Sprintf("File not found in minio with path: %s", path),
+		serverMessage:   fmt.Sprintf("File not found in minio bucket[%s]: %s", bucket, path),
 		responseMessage: "File not found",
 	}
 }

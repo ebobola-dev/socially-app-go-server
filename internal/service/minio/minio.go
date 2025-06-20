@@ -7,12 +7,12 @@ import (
 	"fmt"
 
 	"github.com/ebobola-dev/socially-app-go-server/internal/config"
-	api_error "github.com/ebobola-dev/socially-app-go-server/internal/errors"
-	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
 	image_util "github.com/ebobola-dev/socially-app-go-server/internal/util/image"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+var ErrObjectNotFound = errors.New("file not found")
 
 type IMinioService interface {
 	Save(ctx context.Context, bucket *Bucket, objectName string, data []byte, contentType string) error
@@ -63,7 +63,7 @@ func (m *minioService) Delete(ctx context.Context, bucket *Bucket, objectName st
 	err := m.Client.RemoveObject(ctx, bucket.Name, objectName, minio.RemoveObjectOptions{})
 	if err != nil {
 		if minio.ToErrorResponse(err).StatusCode == 404 {
-			return common_error.NewMinioNotFoundErr(objectName)
+			return ErrObjectNotFound
 		}
 		return err
 	}
@@ -79,7 +79,7 @@ func (m *minioService) Get(ctx context.Context, bucket *Bucket, objectName strin
 	stat, statErr := obj.Stat()
 	if statErr != nil {
 		if minio.ToErrorResponse(statErr).StatusCode == 404 {
-			return nil, minio.ObjectInfo{}, common_error.NewMinioNotFoundErr(objectName)
+			return nil, minio.ObjectInfo{}, ErrObjectNotFound
 		}
 		return nil, minio.ObjectInfo{}, statErr
 	}
@@ -90,9 +90,8 @@ func (m *minioService) DeleteAvatar(ctx context.Context, avatarID string) error 
 	for _, size := range image_util.ImageSizesList {
 		objectName := fmt.Sprintf("%s/%s.jpg", avatarID, size.String())
 		err := m.Delete(ctx, AvatarsBucket, objectName)
-		var apiErr api_error.IApiError
 		if err != nil {
-			if errors.As(err, &apiErr) {
+			if errors.Is(err, ErrObjectNotFound) {
 				continue
 			}
 			return err
