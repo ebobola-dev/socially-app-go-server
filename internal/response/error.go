@@ -1,7 +1,7 @@
 package response
 
 import (
-	string_utils "github.com/ebobola-dev/socially-app-go-server/internal/util"
+	string_utils "github.com/ebobola-dev/socially-app-go-server/internal/util/strings"
 	"github.com/go-playground/validator/v10"
 )
 

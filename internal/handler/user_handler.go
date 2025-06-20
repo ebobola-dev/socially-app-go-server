@@ -56,7 +56,6 @@ func (h *userHandler) CheckUsername(c *fiber.Ctx) error {
 
 func (h *userHandler) GetById(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
-
 	payload := struct {
 		UserId string `validate:"required,uuid4"`
 	}{
@@ -75,7 +74,9 @@ func (h *userHandler) GetById(c *fiber.Ctx) error {
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundErr("User")
 	}
-	return c.JSON(user)
+	return c.JSON(user.ToJson(model.SerializeUserOptions{
+		Safe: user.ID == middleware.GetUserId(c),
+	}))
 }
 
 func (h *userHandler) DeleteMyAccount(c *fiber.Ctx) error {
@@ -126,14 +127,21 @@ func (h *userHandler) Search(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	var jsonUsers []map[string]interface{}
+	for _, user := range users {
+		jsonUsers = append(jsonUsers, user.ToJson(model.SerializeUserOptions{
+			Safe:  user.ID == userId,
+			Short: true,
+		}))
+	}
 	return c.JSON(fiber.Map{
 		"pagination": fiber.Map{
 			"offset": pagination.Offset,
 			"limit":  pagination.Limit,
 		},
-		"count":   len(users),
+		"count":   len(jsonUsers),
 		"pattern": pattern,
-		"users":   users,
+		"users":   jsonUsers,
 	})
 }
 

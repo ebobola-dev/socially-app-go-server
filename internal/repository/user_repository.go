@@ -10,13 +10,13 @@ import (
 )
 
 type IUserRepository interface {
-	GetByID(db *gorm.DB, id uuid.UUID, options GetUserOptions) (*model.User, error)
-	GetByUsername(db *gorm.DB, username string) (*model.User, error)
-	GetByEmail(db *gorm.DB, email string) (*model.User, error)
-	Create(db *gorm.DB, user *model.User) error
+	GetByID(tx *gorm.DB, id uuid.UUID, options GetUserOptions) (*model.User, error)
+	GetByUsername(tx *gorm.DB, username string) (*model.User, error)
+	GetByEmail(tx *gorm.DB, email string) (*model.User, error)
+	Create(tx *gorm.DB, user *model.User) error
 	CreateWithPrivilege(tx *gorm.DB, user *model.User, privName string) error
 	Update(tx *gorm.DB, user *model.User) error
-	HardDelete(db *gorm.DB, id uuid.UUID) error
+	HardDelete(tx *gorm.DB, id uuid.UUID) error
 	ExistsByEmail(tx *gorm.DB, email string) (bool, error)
 	ExistsByUsername(tx *gorm.DB, username string) (bool, error)
 	AddPrivilege(tx *gorm.DB, userID uuid.UUID, privID uuid.UUID) error
@@ -82,8 +82,8 @@ func (r *userRepository) Update(tx *gorm.DB, user *model.User) error {
 	return tx.Save(user).Error
 }
 
-func (r *userRepository) HardDelete(db *gorm.DB, id uuid.UUID) error {
-	result := db.Delete(&model.User{}, "id = ?", id)
+func (r *userRepository) HardDelete(tx *gorm.DB, id uuid.UUID) error {
+	result := tx.Delete(&model.User{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
 	}
