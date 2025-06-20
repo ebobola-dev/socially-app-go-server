@@ -24,13 +24,18 @@ type User struct {
 	AvatarType *AvatarType `gorm:"type:enum('external','avatar1','avatar2', 'avatar3', 'avatar4', 'avatar5', 'avatar6', 'avatar7', 'avatar8', 'avatar9', 'avatar10');" serializer:"short"`
 	AvatarID   *uuid.UUID  `gorm:"type:char(36);uniqueIndex" serializer:"short"`
 
-	Privileges     []Privilege     `gorm:"many2many:user_privileges"`
-	UserPrivileges []UserPrivilege `gorm:"foreignKey:UserID"`
+	Privileges     []Privilege         `gorm:"many2many:user_privileges"`
+	UserPrivileges []UserPrivilege     `gorm:"foreignKey:UserID"`
+	Following      []*UserSubscription `gorm:"foreignKey:FollowerID"`
+	Followers      []*UserSubscription `gorm:"foreignKey:TargetID"`
 
 	LastSeen *time.Time `serializer:""`
 
 	DeletedAt *time.Time `gorm:"index" serializer:"short"`
 	CreatedAt time.Time  `gorm:"autoCreateTime" serializer:"short"`
+
+	FollowersCount int64 `gorm:"-" serializer:""`
+	FollowingCount int64 `gorm:"-" serializer:""`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

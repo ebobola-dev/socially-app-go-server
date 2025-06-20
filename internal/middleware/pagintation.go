@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
 
 	"github.com/gofiber/fiber/v2"
 )

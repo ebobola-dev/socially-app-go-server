@@ -13,7 +13,7 @@ import (
 	user_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/user"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
-	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

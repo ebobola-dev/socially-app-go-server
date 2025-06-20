@@ -51,6 +51,10 @@ func New(appScope *scope.AppScope) *fiber.App {
 		users.Patch("/avatar", middleware.ContentType("multipart/form-data"), userHandler.UpdateAvatar)
 		users.Delete("/avatar", userHandler.DeleteAvatar)
 		users.Get("/privileges", middleware.Pagination(), userHandler.GetPrivileges)
+		users.Post("/:user_id/followers", userHandler.Follow)
+		users.Delete("/:user_id/followers", userHandler.Unfollow)
+		users.Get("/:user_id/followers", middleware.Pagination(), userHandler.GetFollowers)
+		users.Get("/:user_id/following", middleware.Pagination(), userHandler.GetFollowing)
 		users.Get("/:user_id", userHandler.GetById) //% must be last
 	}
 

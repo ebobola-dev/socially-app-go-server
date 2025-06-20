@@ -5,7 +5,7 @@ import (
 
 	privilege_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/privilege"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
-	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"

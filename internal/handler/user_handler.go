@@ -68,7 +68,8 @@ func (h *userHandler) GetById(c *fiber.Ctx) error {
 	userId := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
 	user, get_err := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{
-		IncludeDeleted: true,
+		IncludeDeleted:     true,
+		CountSubscriptions: true,
 	})
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
@@ -378,4 +379,145 @@ func (h *userHandler) GetPrivileges(c *fiber.Ctx) error {
 			return userPrivilege.ToJsonPrivilege()
 		}),
 	})
+}
+
+func (h *userHandler) Follow(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		TargetUID string `validate:"required,uuid4"`
+	}{
+		TargetUID: c.Params("user_id"),
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	targetUID := uuid.MustParse(payload.TargetUID)
+	tx := middleware.GetTX(c)
+	subscruberId := middleware.GetUserId(c)
+	if err := s.UserRepository.Follow(tx, subscruberId, targetUID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common_error.NewRecordNotFoundErr("Target user")
+		}
+		if errors.Is(err, repository.ErrAlreadyFollowing) {
+			return common_error.ErrAlreadyFolowingConflict
+		}
+		if errors.Is(err, repository.ErrSubActionYourself) {
+			return common_error.ErrFollowYourselfConflict
+		}
+		return err
+	}
+	return c.SendStatus(200)
+}
+
+func (h *userHandler) Unfollow(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		TargetUID string `validate:"required,uuid4"`
+	}{
+		TargetUID: c.Params("user_id"),
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	targetUID := uuid.MustParse(payload.TargetUID)
+	tx := middleware.GetTX(c)
+	subscruberId := middleware.GetUserId(c)
+	if err := s.UserRepository.Unfollow(tx, subscruberId, targetUID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common_error.NewRecordNotFoundErr("Target user")
+		}
+		if errors.Is(err, repository.ErrNotFollowingAnyway) {
+			return common_error.ErrNotFollowingConflict
+		}
+		if errors.Is(err, repository.ErrSubActionYourself) {
+			return common_error.ErrFollowYourselfConflict
+		}
+		return err
+	}
+	return c.SendStatus(200)
+}
+
+func (h *userHandler) GetFollowers(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		TargetUID string `validate:"required,uuid4"`
+	}{
+		TargetUID: c.Params("user_id"),
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	targetUID := uuid.MustParse(payload.TargetUID)
+	tx := middleware.GetTX(c)
+	pagination := middleware.GetPagination(c)
+	followers, err := s.UserRepository.GetFollowers(tx, repository.GetSubscriptionsOptions{
+		TargetUID:  targetUID,
+		Pagination: pagination,
+	})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common_error.NewRecordNotFoundErr("Target user")
+		}
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"user_id":    targetUID,
+		"pagination": pagination.ToMap(),
+		"count":      len(followers),
+		"followers": lo.Map(followers, func(us model.UserSubscription, _ int) map[string]interface{} {
+			return us.ToJson(model.SerializeUserSubscriptionOptions{
+				IncludeFollower: true,
+			})
+		}),
+	})
+}
+
+func (h *userHandler) GetFollowing(c *fiber.Ctx) error {
+	s := middleware.GetAppScope(c)
+	payload := struct {
+		TargetUID string `validate:"required,uuid4"`
+	}{
+		TargetUID: c.Params("user_id"),
+	}
+	if err := s.Validate.Struct(payload); err != nil {
+		return err
+	}
+	targetUID := uuid.MustParse(payload.TargetUID)
+	tx := middleware.GetTX(c)
+	pagination := middleware.GetPagination(c)
+	following, err := s.UserRepository.GetFollowing(tx, repository.GetSubscriptionsOptions{
+		TargetUID:  targetUID,
+		Pagination: pagination,
+	})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common_error.NewRecordNotFoundErr("Target user")
+		}
+		return err
+	}
+	return c.JSON(fiber.Map{
+		"user_id":    targetUID,
+		"pagination": pagination.ToMap(),
+		"count":      len(following),
+		"following": lo.Map(following, func(us model.UserSubscription, _ int) map[string]interface{} {
+			return us.ToJson(model.SerializeUserSubscriptionOptions{
+				IncludeTarget: true,
+			})
+		}),
+	})
+	// % Second option - metadata separately, "followers" is a clean users list
+	// return c.JSON(fiber.Map{
+	// 	"user_id":    targetUID,
+	// 	"pagination": pagination.ToMap(),
+	// 	"count":      len(following),
+	// 	"metadata": lo.Map(following, func(us model.UserSubscription, _ int) map[string]interface{} {
+	// 		return map[string]interface{}{
+	// 			"target_id":   us.TargetID,
+	// 			"followed_at": us.FollowedAt,
+	// 		}
+	// 	}),
+	// 	"following": lo.Map(following, func(us model.UserSubscription, _ int) map[string]interface{} {
+	// 		return us.Target.ToJson(model.SerializeUserOptions{Short: true})
+	// 	}),
+	// })
 }

@@ -1,13 +1,21 @@
 package repository
 
 import (
+	"errors"
 	"time"
 
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
-	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagintation"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
+)
+
+var (
+	ErrSubActionYourself  = errors.New("can't follow yourself")
+	ErrAlreadyFollowing   = errors.New("already following")
+	ErrNotFollowingAnyway = errors.New("not following anyway")
 )
 
 type IUserRepository interface {
@@ -27,6 +35,10 @@ type IUserRepository interface {
 	SoftDelete(tx *gorm.DB, id uuid.UUID) error
 	Search(tx *gorm.DB, options SearchUsersOptions) ([]model.User, error)
 	GetPrivileges(tx *gorm.DB, opts GetUserPrivilegesOptions) ([]model.UserPrivilege, error)
+	Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) error
+	Unfollow(tx *gorm.DB, followerID, targetID uuid.UUID) error
+	GetFollowers(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error)
+	GetFollowing(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error)
 }
 
 type userRepository struct{}
@@ -40,8 +52,27 @@ func (r *userRepository) GetByID(tx *gorm.DB, id uuid.UUID, options GetUserOptio
 	if !options.IncludeDeleted {
 		tx = tx.Where("deleted_at IS NULL")
 	}
-	err := tx.Preload("UserPrivileges.Privilege").First(&user, "id = ?", id).Error
-	return &user, err
+	if err := tx.Preload("UserPrivileges.Privilege").First(&user, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	if options.CountSubscriptions {
+		var count int64
+		if err := tx.
+			Model(&model.UserSubscription{}).
+			Where("follower_id = ?", id).
+			Count(&count).Error; err != nil {
+			return nil, err
+		}
+		user.FollowingCount = count
+		if err := tx.
+			Model(&model.UserSubscription{}).
+			Where("target_id  = ?", id).
+			Count(&count).Error; err != nil {
+			return nil, err
+		}
+		user.FollowersCount = count
+	}
+	return &user, nil
 }
 
 func (r *userRepository) GetByUsername(tx *gorm.DB, username string) (*model.User, error) {
@@ -264,8 +295,89 @@ func (r *userRepository) GetPrivileges(tx *gorm.DB, opts GetUserPrivilegesOption
 	return userPrivileges, nil
 }
 
+func (r *userRepository) Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) error {
+	if subscriberId == targetId {
+		return ErrSubActionYourself
+	}
+	var target model.User
+	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", targetId).Error; err != nil {
+		return err
+	}
+	subscribtion := model.UserSubscription{
+		FollowerID: subscriberId,
+		TargetID:   targetId,
+	}
+	if err := tx.Create(&subscribtion).Error; err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return ErrAlreadyFollowing
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *userRepository) Unfollow(tx *gorm.DB, followerID, targetID uuid.UUID) error {
+	if followerID == targetID {
+		return ErrSubActionYourself
+	}
+	var target model.User
+	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", targetID).Error; err != nil {
+		return err
+	}
+	res := tx.Delete(&model.UserSubscription{}, "follower_id = ? AND target_id = ?", followerID, targetID)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFollowingAnyway
+	}
+	return nil
+}
+
+func (r *userRepository) GetFollowers(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error) {
+	var followers []model.UserSubscription
+	var target model.User
+	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", options.TargetUID).Error; err != nil {
+		return nil, err
+	}
+	query := tx.
+		Where("target_id = ?", options.TargetUID).
+		Preload("Follower").
+		Order("created_at DESC").
+		Offset(options.Pagination.Offset).
+		Limit(options.Pagination.Limit)
+
+	if err := query.Find(&followers).Error; err != nil {
+		return nil, err
+	}
+
+	return followers, nil
+}
+
+func (r *userRepository) GetFollowing(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error) {
+	var following []model.UserSubscription
+	var target model.User
+	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", options.TargetUID).Error; err != nil {
+		return nil, err
+	}
+	query := tx.
+		Where("follower_id = ?", options.TargetUID).
+		Preload("Target").
+		Order("created_at DESC").
+		Offset(options.Pagination.Offset).
+		Limit(options.Pagination.Limit)
+
+	if err := query.Find(&following).Error; err != nil {
+		return nil, err
+	}
+
+	return following, nil
+}
+
 type GetUserOptions struct {
-	IncludeDeleted bool
+	IncludeDeleted     bool
+	CountSubscriptions bool
 }
 
 type SearchUsersOptions struct {
@@ -279,4 +391,9 @@ type GetUserPrivilegesOptions struct {
 	Pagination pagination.Pagination
 	UserID     uuid.UUID
 	CountUsers bool
+}
+
+type GetSubscriptionsOptions struct {
+	TargetUID  uuid.UUID
+	Pagination pagination.Pagination
 }

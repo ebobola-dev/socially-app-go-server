@@ -20,6 +20,10 @@ type IUserHandler interface {
 	UpdateAvatar(c *fiber.Ctx) error
 	DeleteAvatar(c *fiber.Ctx) error
 	GetPrivileges(c *fiber.Ctx) error
+	Follow(c *fiber.Ctx) error
+	Unfollow(c *fiber.Ctx) error
+	GetFollowers(c *fiber.Ctx) error
+	GetFollowing(c *fiber.Ctx) error
 }
 
 type IAuthHandler interface {

@@ -9,6 +9,7 @@ import (
 	auth_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/auth"
 	common_error "github.com/ebobola-dev/socially-app-go-server/internal/errors/common"
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
+	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
@@ -72,7 +73,7 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"access_token":  access_token,
 		"refresh_token": refresh_token.Value,
-		"user":          user,
+		"user":          user.ToJson(model.SerializeUserOptions{Safe: true}),
 	})
 }
 
@@ -103,7 +104,7 @@ func (h *authHandler) Refresh(c *fiber.Ctx) error {
 
 	tx := middleware.GetTX(c)
 
-	user, getUErr := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
+	_, getUErr := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{})
 	if errors.Is(getUErr, gorm.ErrRecordNotFound) {
 		return auth_error.ErrInvalidToken
 	} else if getUErr != nil {
@@ -132,7 +133,6 @@ func (h *authHandler) Refresh(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"access_token":  newAccessToken,
 		"refresh_token": newRefreshToken.Value,
-		"user":          user,
 	})
 }
 
