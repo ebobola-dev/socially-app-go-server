@@ -15,19 +15,26 @@ type UserSubscription struct {
 	Target   User `gorm:"foreignKey:TargetID;constraint:OnDelete:CASCADE"`
 }
 
-func (us *UserSubscription) ToJson(options SerializeUserSubscriptionOptions) map[string]interface{} {
-	result := make(map[string]interface{})
-	result["followed_at"] = us.CreatedAt
-	if options.IncludeFollower {
-		result["follower"] = us.Follower.ToJson(SerializeUserOptions{Short: true})
+func (us *UserSubscription) ToFollowerDto() FollowerDto {
+	return FollowerDto{
+		FollowedAt: us.CreatedAt,
+		Follower:   us.Follower.ToShortDto(),
 	}
-	if options.IncludeTarget {
-		result["target"] = us.Target.ToJson(SerializeUserOptions{Short: true})
-	}
-	return result
 }
 
-type SerializeUserSubscriptionOptions struct {
-	IncludeFollower bool
-	IncludeTarget   bool
+func (us *UserSubscription) ToFollowingDto() FollowingDto {
+	return FollowingDto{
+		FollowedAt: us.CreatedAt,
+		Target:     us.Target.ToShortDto(),
+	}
+}
+
+type FollowerDto struct {
+	FollowedAt time.Time    `json:"followed_at"`
+	Follower   ShortUserDto `json:"follower"`
+}
+
+type FollowingDto struct {
+	FollowedAt time.Time    `json:"followed_at"`
+	Target     ShortUserDto `json:"target"`
 }

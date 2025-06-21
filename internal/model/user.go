@@ -1,28 +1,25 @@
 package model
 
 import (
-	"reflect"
-	"slices"
-	"strings"
 	"time"
 
-	string_utils "github.com/ebobola-dev/socially-app-go-server/internal/util/strings"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	ID          uuid.UUID `gorm:"type:char(36);primaryKey" serializer:"short"`
-	Email       string    `gorm:"uniqueIndex;not null" serializer:"safe"`
-	Username    string    `gorm:"uniqueIndex;type:varchar(16);not null" serializer:"short"`
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey"`
+	Email       string    `gorm:"uniqueIndex;not null"`
+	Username    string    `gorm:"uniqueIndex;type:varchar(16);not null"`
 	Password    string    `gorm:"type:char(60), not null"`
-	Fullname    *string   `gorm:"type:varchar(32)" serializer:"short"`
-	AboutMe     *string   `gorm:"type:varchar(256)" serializer:""`
-	Gender      *Gender   `gorm:"type:enum('male','female')" serializer:""`
-	DateOfBirth time.Time `gorm:"type:date;not null" serializer:"as_date"`
+	Fullname    *string   `gorm:"type:varchar(32)"`
+	AboutMe     *string   `gorm:"type:varchar(256)"`
+	Gender      *Gender   `gorm:"type:enum('male','female')"`
+	DateOfBirth time.Time `gorm:"type:date;not null"`
 
-	AvatarType *AvatarType `gorm:"type:enum('external','avatar1','avatar2', 'avatar3', 'avatar4', 'avatar5', 'avatar6', 'avatar7', 'avatar8', 'avatar9', 'avatar10');" serializer:"short"`
-	AvatarID   *uuid.UUID  `gorm:"type:char(36);uniqueIndex" serializer:"short"`
+	AvatarType *AvatarType `gorm:"type:enum('external','avatar1','avatar2', 'avatar3', 'avatar4', 'avatar5', 'avatar6', 'avatar7', 'avatar8', 'avatar9', 'avatar10');"`
+	AvatarID   *uuid.UUID  `gorm:"type:char(36);uniqueIndex"`
 
 	Privileges     []Privilege         `gorm:"many2many:user_privileges"`
 	UserPrivileges []UserPrivilege     `gorm:"foreignKey:UserID"`
@@ -31,11 +28,11 @@ type User struct {
 
 	LastSeen *time.Time `serializer:""`
 
-	DeletedAt *time.Time `gorm:"index" serializer:"short"`
-	CreatedAt time.Time  `gorm:"autoCreateTime" serializer:"short"`
+	DeletedAt *time.Time `gorm:"index"`
+	CreatedAt time.Time  `gorm:"autoCreateTime"`
 
-	FollowersCount int64 `gorm:"-" serializer:""`
-	FollowingCount int64 `gorm:"-" serializer:""`
+	FollowersCount int64 `gorm:"-"`
+	FollowingCount int64 `gorm:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
@@ -45,53 +42,81 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
-func (u *User) ToJson(options SerializeUserOptions) map[string]interface{} {
-	val := reflect.ValueOf(u)
-	if val.Kind() == reflect.Pointer {
-		val = val.Elem()
+func (u *User) ToShortDto() ShortUserDto {
+	return ShortUserDto{
+		Id:         u.ID,
+		Username:   u.Username,
+		Fullname:   u.Fullname,
+		AvatarType: u.AvatarType,
+		AvatarId:   u.AvatarID,
+		CreatedAt:  u.CreatedAt,
+		DeletedAt:  u.DeletedAt,
 	}
-	typ := val.Type()
+}
 
-	out := map[string]interface{}{}
+func (u *User) ToFullDto(safe bool) FullUserDto {
+	jsonView := FullUserDto{
+		Id:             u.ID,
+		Username:       u.Username,
+		Fullname:       u.Fullname,
+		AvatarType:     u.AvatarType,
+		AvatarId:       u.AvatarID,
+		CreatedAt:      u.CreatedAt,
+		DeletedAt:      u.DeletedAt,
+		AboutMe:        u.AboutMe,
+		Gender:         u.Gender,
+		DateOfBirth:    u.DateOfBirth.Format(time.DateOnly),
+		LastSeen:       u.LastSeen,
+		FollowersCount: u.FollowersCount,
+		FollowingCount: u.FollowingCount,
+	}
+	if safe {
+		jsonView.Email = &u.Email
+	}
+	jsonView.Privileges = lo.Map(u.UserPrivileges, func(up UserPrivilege, _ int) string {
+		return up.Privilege.Name
+	})
+	return jsonView
+}
 
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-		tag, ok := field.Tag.Lookup("serializer")
-		if !ok {
-			continue
-		}
-		flags := strings.Split(tag, ",")
-		if slices.Contains(flags, "safe") && !options.Safe {
-			continue
-		}
-		if !slices.Contains(flags, "short") && options.Short {
-			continue
-		}
-
-		fieldName := string_utils.ToSnakeCase(field.Name)
-		if !slices.Contains([]string{"safe", "short", "as_date"}, flags[0]) && flags[0] != "" {
-			fieldName = flags[0]
-		}
-		jsonValue := val.Field(i).Interface()
-		if slices.Contains(flags, "as_date") {
-			t, ok := jsonValue.(time.Time)
-			if ok {
-				jsonValue = t.Format(time.DateOnly)
-			}
-		}
-		out[fieldName] = jsonValue
+func (u *User) ToDto(options SerializeUserOptions) UserDto {
+	if options.Short {
+		return u.ToShortDto()
 	}
-	privileges := make([]string, len(u.UserPrivileges))
-	for i, userPrivilege := range u.UserPrivileges {
-		privileges[i] = userPrivilege.Privilege.Name
-	}
-	if !options.Short {
-		out["privileges"] = privileges
-	}
-	return out
+	return u.ToFullDto(options.Safe)
 }
 
 type SerializeUserOptions struct {
 	Safe  bool
 	Short bool
+}
+
+type UserDto interface{}
+
+type ShortUserDto struct {
+	Id         uuid.UUID   `json:"id"`
+	Username   string      `json:"username"`
+	Fullname   *string     `json:"fullname"`
+	AvatarType *AvatarType `json:"avatar_type"`
+	AvatarId   *uuid.UUID  `json:"avatar_id"`
+	CreatedAt  time.Time   `json:"create_at"`
+	DeletedAt  *time.Time  `json:"deleted_at"`
+}
+
+type FullUserDto struct {
+	Id             uuid.UUID   `json:"id"`
+	Email          *string     `json:"email,omitempty"`
+	Username       string      `json:"username"`
+	Fullname       *string     `json:"fullname"`
+	Gender         *Gender     `json:"gender"`
+	DateOfBirth    string      `json:"date_of_birth"`
+	AvatarType     *AvatarType `json:"avatar_type"`
+	AvatarId       *uuid.UUID  `json:"avatar_id"`
+	AboutMe        *string     `json:"about_me"`
+	LastSeen       *time.Time  `json:"last_seen"`
+	CreatedAt      time.Time   `json:"created_at"`
+	DeletedAt      *time.Time  `json:"deleted_at"`
+	FollowersCount int64       `json:"followers_count"`
+	FollowingCount int64       `json:"following_count"`
+	Privileges     []string    `json:"privileges"`
 }

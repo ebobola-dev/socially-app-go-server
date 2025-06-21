@@ -8,6 +8,7 @@ import (
 	"github.com/ebobola-dev/socially-app-go-server/internal/middleware"
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	"github.com/ebobola-dev/socially-app-go-server/internal/repository"
+	"github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -23,23 +24,24 @@ func NewPrivilegeHandler() IPrivilegeHandler {
 
 func (h *privilegeHandler) GetAll(c *fiber.Ctx) error {
 	s := middleware.GetAppScope(c)
-	pagintation := middleware.GetPagination(c)
+	pag := middleware.GetPagination(c)
 	tx := middleware.GetTX(c)
 	privileges, err := s.PrivilegeRepository.GetAll(tx, repository.GetPrivilegesListOptions{
-		Pagination: pagintation,
+		Pagination: pag,
 		CountUsers: true,
 	})
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{
-		"pagination": fiber.Map{
-			"offset": pagintation.Offset,
-			"limit":  pagintation.Limit,
-		},
-		"count": len(privileges),
-		"privileges": lo.Map(privileges, func(privilege model.Privilege, _ int) map[string]interface{} {
-			return privilege.ToJson(model.SerializePrivilegeOptions{})
+	return c.JSON(struct {
+		Count      int                      `json:"count"`
+		Pagination pagination.Pagination    `json:"pagination"`
+		Privileges []model.FullPrivilegeDto `json:"privileges"`
+	}{
+		Count:      len(privileges),
+		Pagination: pag,
+		Privileges: lo.Map(privileges, func(privilege model.Privilege, _ int) model.FullPrivilegeDto {
+			return privilege.ToFullDto()
 		}),
 	})
 }
@@ -58,23 +60,22 @@ func (h *privilegeHandler) GetUsers(c *fiber.Ctx) error {
 		return err
 	}
 
-	pagintation := middleware.GetPagination(c)
-	users, err := s.PrivilegeRepository.GetUsers(tx, pagintation, privName)
+	pag := middleware.GetPagination(c)
+	users, err := s.PrivilegeRepository.GetUsers(tx, pag, privName)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{
-		"pagination": fiber.Map{
-			"offset": pagintation.Offset,
-			"limit":  pagintation.Limit,
-		},
-		"privilege": privilege.ToJson(model.SerializePrivilegeOptions{}),
-		"count":     len(users),
-		"users": lo.Map(users, func(user model.User, _ int) map[string]interface{} {
-			return user.ToJson(model.SerializeUserOptions{
-				Safe:  middleware.GetUserId(c) == user.ID,
-				Short: true,
-			})
+	return c.JSON(struct {
+		Count      int                    `json:"count"`
+		Pagination pagination.Pagination  `json:"pagination"`
+		Privilege  model.FullPrivilegeDto `json:"privilege"`
+		Users      []model.ShortUserDto   `json:"users"`
+	}{
+		Count:      len(users),
+		Pagination: pag,
+		Privilege:  privilege.ToFullDto(),
+		Users: lo.Map(users, func(user model.User, _ int) model.ShortUserDto {
+			return user.ToShortDto()
 		}),
 	})
 }
@@ -100,7 +101,7 @@ func (h *privilegeHandler) Create(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"created_privilege": newPrivilege.ToJson(model.SerializePrivilegeOptions{}),
+		"created_privilege": newPrivilege.ToFullDto(),
 	})
 }
 

@@ -202,7 +202,7 @@ func (h *registrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 		return hash_err
 	}
 
-	new_user := &model.User{
+	newUser := &model.User{
 		Email:       reg_data.Email,
 		Fullname:    payload.Fullname,
 		DateOfBirth: dob,
@@ -219,17 +219,18 @@ func (h *registrationHandler) CompleteRegistration(c *fiber.Ctx) error {
 			if len(owners) > 0 {
 				return user_error.ErrOwnerAlreadyRegistered
 			}
-			if err := userRepository.CreateWithPrivilege(tx, new_user, "owner"); err != nil {
+			if err := userRepository.CreateWithPrivilege(tx, newUser, "owner"); err != nil {
 				return err
 			}
 		}
 	} else {
-		if err := userRepository.Create(tx, new_user); err != nil {
+		if err := userRepository.Create(tx, newUser); err != nil {
 			return err
 		}
 	}
-
-	return c.JSON(fiber.Map{
-		"created_user": new_user.ToJson(model.SerializeUserOptions{Safe: true}),
+	return c.JSON(struct {
+		CreatedUser model.FullUserDto `json:"created_user"`
+	}{
+		CreatedUser: newUser.ToFullDto(true),
 	})
 }

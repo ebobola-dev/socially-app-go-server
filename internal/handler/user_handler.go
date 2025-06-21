@@ -20,6 +20,7 @@ import (
 	minio_service "github.com/ebobola-dev/socially-app-go-server/internal/service/minio"
 	image_util "github.com/ebobola-dev/socially-app-go-server/internal/util/image"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/nullable"
+	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/short_flag"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -78,10 +79,12 @@ func (h *userHandler) GetById(c *fiber.Ctx) error {
 	} else if errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return common_error.NewRecordNotFoundErr("User")
 	}
-	return c.JSON(user.ToJson(model.SerializeUserOptions{
+
+	return c.JSON(user.ToDto(model.SerializeUserOptions{
 		Safe:  user.ID == middleware.GetUserId(c),
 		Short: short,
 	}))
+
 }
 
 func (h *userHandler) DeleteMyAccount(c *fiber.Ctx) error {
@@ -121,29 +124,28 @@ func (h *userHandler) Search(c *fiber.Ctx) error {
 	tx := middleware.GetTX(c)
 	s := middleware.GetAppScope(c)
 	userId := middleware.GetUserId(c)
-	pagination := middleware.GetPagination(c)
+	pag := middleware.GetPagination(c)
 
 	pattern := c.Query("pattern")
 	users, err := s.UserRepository.Search(tx, repository.SearchUsersOptions{
 		Pattern:    pattern,
-		Pagination: pagination,
+		Pagination: pag,
 		IgnoreId:   userId,
 	})
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{
-		"pagination": fiber.Map{
-			"offset": pagination.Offset,
-			"limit":  pagination.Limit,
-		},
-		"count":   len(users),
-		"pattern": pattern,
-		"users": lo.Map(users, func(user model.User, _ int) map[string]interface{} {
-			return user.ToJson(model.SerializeUserOptions{
-				Safe:  user.ID == userId,
-				Short: true,
-			})
+	return c.JSON(struct {
+		Pattern    string                `json:"pattern"`
+		Count      int                   `json:"count"`
+		Pagination pagination.Pagination `json:"pagination"`
+		Users      []model.ShortUserDto  `json:"users"`
+	}{
+		Pattern:    pattern,
+		Count:      len(users),
+		Pagination: pag,
+		Users: lo.Map(users, func(user model.User, _ int) model.ShortUserDto {
+			return user.ToShortDto()
 		}),
 	})
 }
@@ -198,7 +200,7 @@ func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
+		"updated_user": user.ToFullDto(true),
 	})
 }
 
@@ -255,7 +257,7 @@ func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 			return err
 		}
 		return c.JSON(fiber.Map{
-			"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
+			"updated_user": user.ToFullDto(true),
 		})
 	}
 
@@ -329,7 +331,7 @@ func (h *userHandler) UpdateAvatar(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
+		"updated_user": user.ToFullDto(true),
 	})
 }
 
@@ -349,7 +351,7 @@ func (h *userHandler) DeleteAvatar(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{
-		"updated_user": user.ToJson(model.SerializeUserOptions{Safe: true}),
+		"updated_user": user.ToFullDto(true),
 	})
 }
 
@@ -365,21 +367,26 @@ func (h *userHandler) GetPrivileges(c *fiber.Ctx) error {
 	}
 	targetUid := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
-	pagination := middleware.GetPagination(c)
+	pag := middleware.GetPagination(c)
 	privileges, err := s.UserRepository.GetPrivileges(tx, repository.GetUserPrivilegesOptions{
-		Pagination: pagination,
+		Pagination: pag,
 		UserID:     targetUid,
 		CountUsers: true,
 	})
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{
-		"user_id":    targetUid,
-		"pagination": pagination.ToMap(),
-		"count":      len(privileges),
-		"privileges": lo.Map(privileges, func(userPrivilege model.UserPrivilege, _ int) map[string]interface{} {
-			return userPrivilege.ToJsonPrivilege()
+	return c.JSON(struct {
+		UserId      uuid.UUID                `json:"user_id"`
+		Count       int                      `json:"count"`
+		Pagintation pagination.Pagination    `json:"pagination"`
+		Privileges  []model.UserPrivilegeDto `json:"privileges"`
+	}{
+		UserId:      targetUid,
+		Count:       len(privileges),
+		Pagintation: pag,
+		Privileges: lo.Map(privileges, func(userPrivilege model.UserPrivilege, _ int) model.UserPrivilegeDto {
+			return userPrivilege.ToDto()
 		}),
 	})
 }
@@ -458,10 +465,10 @@ func (h *userHandler) GetFollowers(c *fiber.Ctx) error {
 	}
 	targetUID := uuid.MustParse(payload.TargetUID)
 	tx := middleware.GetTX(c)
-	pagination := middleware.GetPagination(c)
+	pag := middleware.GetPagination(c)
 	followers, err := s.UserRepository.GetFollowers(tx, repository.GetSubscriptionsOptions{
 		TargetUID:  targetUID,
-		Pagination: pagination,
+		Pagination: pag,
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -469,14 +476,17 @@ func (h *userHandler) GetFollowers(c *fiber.Ctx) error {
 		}
 		return err
 	}
-	return c.JSON(fiber.Map{
-		"user_id":    targetUID,
-		"pagination": pagination.ToMap(),
-		"count":      len(followers),
-		"followers": lo.Map(followers, func(us model.UserSubscription, _ int) map[string]interface{} {
-			return us.ToJson(model.SerializeUserSubscriptionOptions{
-				IncludeFollower: true,
-			})
+	return c.JSON(struct {
+		UserId      uuid.UUID             `json:"user_id"`
+		Count       int                   `json:"count"`
+		Pagintation pagination.Pagination `json:"pagination"`
+		Followers   []model.FollowerDto   `json:"followers"`
+	}{
+		UserId:      targetUID,
+		Count:       len(followers),
+		Pagintation: pag,
+		Followers: lo.Map(followers, func(us model.UserSubscription, _ int) model.FollowerDto {
+			return us.ToFollowerDto()
 		}),
 	})
 }
@@ -493,10 +503,10 @@ func (h *userHandler) GetFollowing(c *fiber.Ctx) error {
 	}
 	targetUID := uuid.MustParse(payload.TargetUID)
 	tx := middleware.GetTX(c)
-	pagination := middleware.GetPagination(c)
+	pag := middleware.GetPagination(c)
 	following, err := s.UserRepository.GetFollowing(tx, repository.GetSubscriptionsOptions{
 		TargetUID:  targetUID,
-		Pagination: pagination,
+		Pagination: pag,
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -504,29 +514,17 @@ func (h *userHandler) GetFollowing(c *fiber.Ctx) error {
 		}
 		return err
 	}
-	return c.JSON(fiber.Map{
-		"user_id":    targetUID,
-		"pagination": pagination.ToMap(),
-		"count":      len(following),
-		"following": lo.Map(following, func(us model.UserSubscription, _ int) map[string]interface{} {
-			return us.ToJson(model.SerializeUserSubscriptionOptions{
-				IncludeTarget: true,
-			})
+	return c.JSON(struct {
+		UserId      uuid.UUID             `json:"user_id"`
+		Count       int                   `json:"count"`
+		Pagintation pagination.Pagination `json:"pagination"`
+		Following   []model.FollowingDto  `json:"following"`
+	}{
+		UserId:      targetUID,
+		Count:       len(following),
+		Pagintation: pag,
+		Following: lo.Map(following, func(us model.UserSubscription, _ int) model.FollowingDto {
+			return us.ToFollowingDto()
 		}),
 	})
-	// % Second option - metadata separately, "followers" is a clean users list
-	// return c.JSON(fiber.Map{
-	// 	"user_id":    targetUID,
-	// 	"pagination": pagination.ToMap(),
-	// 	"count":      len(following),
-	// 	"metadata": lo.Map(following, func(us model.UserSubscription, _ int) map[string]interface{} {
-	// 		return map[string]interface{}{
-	// 			"target_id":   us.TargetID,
-	// 			"followed_at": us.FollowedAt,
-	// 		}
-	// 	}),
-	// 	"following": lo.Map(following, func(us model.UserSubscription, _ int) map[string]interface{} {
-	// 		return us.Target.ToJson(model.SerializeUserOptions{Short: true})
-	// 	}),
-	// })
 }

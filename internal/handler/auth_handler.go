@@ -70,10 +70,15 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 			return upd_err
 		}
 	}
-	return c.JSON(fiber.Map{
-		"access_token":  access_token,
-		"refresh_token": refresh_token.Value,
-		"user":          user.ToJson(model.SerializeUserOptions{Safe: true}),
+
+	return c.JSON(struct {
+		AccessToken  string            `json:"access_token"`
+		RefreshToken string            `json:"refresh_token"`
+		User         model.FullUserDto `json:"user"`
+	}{
+		AccessToken:  access_token,
+		RefreshToken: refresh_token.Value,
+		User:         user.ToFullDto(true),
 	})
 }
 
