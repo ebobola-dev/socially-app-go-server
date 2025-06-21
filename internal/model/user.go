@@ -26,10 +26,10 @@ type User struct {
 	Following      []*UserSubscription `gorm:"foreignKey:FollowerID"`
 	Followers      []*UserSubscription `gorm:"foreignKey:TargetID"`
 
-	LastSeen *time.Time `serializer:""`
+	LastSeen *time.Time `gorm:"default:null"`
 
 	DeletedAt *time.Time `gorm:"index"`
-	CreatedAt time.Time  `gorm:"autoCreateTime"`
+	CreatedAt time.Time  `gorm:"autoCreateTime(3)"`
 
 	FollowersCount int64 `gorm:"-"`
 	FollowingCount int64 `gorm:"-"`
@@ -99,7 +99,7 @@ type ShortUserDto struct {
 	Fullname   *string     `json:"fullname"`
 	AvatarType *AvatarType `json:"avatar_type"`
 	AvatarId   *uuid.UUID  `json:"avatar_id"`
-	CreatedAt  time.Time   `json:"create_at"`
+	CreatedAt  time.Time   `json:"created_at"`
 	DeletedAt  *time.Time  `json:"deleted_at"`
 }
 

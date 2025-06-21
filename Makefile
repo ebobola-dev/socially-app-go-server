@@ -14,6 +14,9 @@ migrate-up:
 migrate-down:
 	@$(MIGRATE) -path $(MIGRATIONS_DIR) -database "$(DB_URL)" down 1
 
+migrate-down-all:
+	@$(MIGRATE) -path $(MIGRATIONS_DIR) -database "$(DB_URL)" down
+
 migrate-goto:
 	@$(MIGRATE) -path $(MIGRATIONS_DIR) -database "$(DB_URL)" goto $(version)
 

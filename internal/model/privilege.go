@@ -11,7 +11,7 @@ type Privilege struct {
 	ID         uuid.UUID `gorm:"type:char(36); primaryKey"`
 	Name       string    `gorm:"type:varchar(64); uniqueIndex"`
 	OrderIndex int       `gorm:"not null;default:0; uniqueIndex"`
-	CreatedAt  time.Time `gorm:"autoCreateTime"`
+	CreatedAt  time.Time `gorm:"not null;autoCreateTime(3)"`
 
 	Users      []User `gorm:"many2many:user_privileges"`
 	UsersCount int    `gorm:"-"`

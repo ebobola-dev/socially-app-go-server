@@ -13,7 +13,7 @@ type RefreshToken struct {
 	DeviceID  string    `gorm:"size:255;not null;uniqueIndex:idx_user_device"`
 	Value     string    `gorm:"size:512;not null;unique"`
 	ExpiresAt time.Time `gorm:"not null"`
-	CreatedAt time.Time `gorm:"autoCreateTime"`
+	CreatedAt time.Time `gorm:"not null;autoCreateTime(3)"`
 
 	User User `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 }
