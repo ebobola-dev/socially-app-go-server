@@ -2,10 +2,12 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ebobola-dev/socially-app-go-server/internal/model"
 	pagination "github.com/ebobola-dev/socially-app-go-server/internal/util/pagination"
+	rand_util "github.com/ebobola-dev/socially-app-go-server/internal/util/rand"
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -202,8 +204,14 @@ func (r *userRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
 	if err := tx.First(&user, "id = ? AND deleted_at IS NULL", id).Error; err != nil {
 		return err
 	}
-	user.Email = ""
-	user.Username = ""
+	suffix, err := rand_util.GenerateHEX(8)
+	if err != nil {
+		return err
+	}
+	deletedTag := fmt.Sprintf("deleted-%s", suffix)
+	fmt.Printf("tag: %s\n", deletedTag)
+	user.Email = deletedTag
+	user.Username = deletedTag
 	user.Fullname = nil
 	user.AboutMe = nil
 	user.Gender = nil
@@ -211,7 +219,6 @@ func (r *userRepository) SoftDelete(tx *gorm.DB, id uuid.UUID) error {
 	user.AvatarType = nil
 	user.AvatarID = nil
 	user.LastSeen = nil
-	user.Privileges = []model.Privilege{}
 
 	now := time.Now()
 	user.DeletedAt = &now
