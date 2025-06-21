@@ -397,7 +397,8 @@ func (h *userHandler) Follow(c *fiber.Ctx) error {
 	targetUID := uuid.MustParse(payload.TargetUID)
 	tx := middleware.GetTX(c)
 	subscruberId := middleware.GetUserId(c)
-	if err := s.UserRepository.Follow(tx, subscruberId, targetUID); err != nil {
+	newFollowersCount, err := s.UserRepository.Follow(tx, subscruberId, targetUID)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common_error.NewRecordNotFoundErr("Target user")
 		}
@@ -409,7 +410,9 @@ func (h *userHandler) Follow(c *fiber.Ctx) error {
 		}
 		return err
 	}
-	return c.SendStatus(200)
+	return c.JSON(fiber.Map{
+		"new_target_followers_count": newFollowersCount,
+	})
 }
 
 func (h *userHandler) Unfollow(c *fiber.Ctx) error {
@@ -425,7 +428,8 @@ func (h *userHandler) Unfollow(c *fiber.Ctx) error {
 	targetUID := uuid.MustParse(payload.TargetUID)
 	tx := middleware.GetTX(c)
 	subscruberId := middleware.GetUserId(c)
-	if err := s.UserRepository.Unfollow(tx, subscruberId, targetUID); err != nil {
+	newFollowersCount, err := s.UserRepository.Unfollow(tx, subscruberId, targetUID)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common_error.NewRecordNotFoundErr("Target user")
 		}
@@ -437,7 +441,9 @@ func (h *userHandler) Unfollow(c *fiber.Ctx) error {
 		}
 		return err
 	}
-	return c.SendStatus(200)
+	return c.JSON(fiber.Map{
+		"new_target_followers_count": newFollowersCount,
+	})
 }
 
 func (h *userHandler) GetFollowers(c *fiber.Ctx) error {

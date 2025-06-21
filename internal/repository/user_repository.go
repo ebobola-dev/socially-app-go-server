@@ -35,8 +35,8 @@ type IUserRepository interface {
 	SoftDelete(tx *gorm.DB, id uuid.UUID) error
 	Search(tx *gorm.DB, options SearchUsersOptions) ([]model.User, error)
 	GetPrivileges(tx *gorm.DB, opts GetUserPrivilegesOptions) ([]model.UserPrivilege, error)
-	Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) error
-	Unfollow(tx *gorm.DB, followerID, targetID uuid.UUID) error
+	Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) (int64, error)
+	Unfollow(tx *gorm.DB, followerID, targetID uuid.UUID) (int64, error)
 	GetFollowers(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error)
 	GetFollowing(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error)
 }
@@ -295,13 +295,13 @@ func (r *userRepository) GetPrivileges(tx *gorm.DB, opts GetUserPrivilegesOption
 	return userPrivileges, nil
 }
 
-func (r *userRepository) Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) error {
+func (r *userRepository) Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) (int64, error) {
 	if subscriberId == targetId {
-		return ErrSubActionYourself
+		return 0, ErrSubActionYourself
 	}
 	var target model.User
 	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", targetId).Error; err != nil {
-		return err
+		return 0, err
 	}
 	subscribtion := model.UserSubscription{
 		FollowerID: subscriberId,
@@ -310,29 +310,41 @@ func (r *userRepository) Follow(tx *gorm.DB, subscriberId, targetId uuid.UUID) e
 	if err := tx.Create(&subscribtion).Error; err != nil {
 		var mysqlErr *mysql.MySQLError
 		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-			return ErrAlreadyFollowing
+			return 0, ErrAlreadyFollowing
 		}
-		return err
+		return 0, err
 	}
-	return nil
+	var newFollowersCount int64
+	if err := tx.Model(&model.UserSubscription{}).
+		Where("target_id = ?", targetId).
+		Count(&newFollowersCount).Error; err != nil {
+		return 0, err
+	}
+	return newFollowersCount, nil
 }
 
-func (r *userRepository) Unfollow(tx *gorm.DB, followerID, targetID uuid.UUID) error {
-	if followerID == targetID {
-		return ErrSubActionYourself
+func (r *userRepository) Unfollow(tx *gorm.DB, followerID, targetId uuid.UUID) (int64, error) {
+	if followerID == targetId {
+		return 0, ErrSubActionYourself
 	}
 	var target model.User
-	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", targetID).Error; err != nil {
-		return err
+	if err := tx.Select("id").First(&target, "id = ? AND deleted_at IS NULL", targetId).Error; err != nil {
+		return 0, err
 	}
-	res := tx.Delete(&model.UserSubscription{}, "follower_id = ? AND target_id = ?", followerID, targetID)
+	res := tx.Delete(&model.UserSubscription{}, "follower_id = ? AND target_id = ?", followerID, targetId)
 	if res.Error != nil {
-		return res.Error
+		return 0, res.Error
 	}
 	if res.RowsAffected == 0 {
-		return ErrNotFollowingAnyway
+		return 0, ErrNotFollowingAnyway
 	}
-	return nil
+	var newFollowersCount int64
+	if err := tx.Model(&model.UserSubscription{}).
+		Where("target_id = ?", targetId).
+		Count(&newFollowersCount).Error; err != nil {
+		return 0, err
+	}
+	return newFollowersCount, nil
 }
 
 func (r *userRepository) GetFollowers(tx *gorm.DB, options GetSubscriptionsOptions) ([]model.UserSubscription, error) {

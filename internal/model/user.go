@@ -19,7 +19,7 @@ type User struct {
 	Fullname    *string   `gorm:"type:varchar(32)" serializer:"short"`
 	AboutMe     *string   `gorm:"type:varchar(256)" serializer:""`
 	Gender      *Gender   `gorm:"type:enum('male','female')" serializer:""`
-	DateOfBirth time.Time `gorm:"type:date;not null" serializer:""`
+	DateOfBirth time.Time `gorm:"type:date;not null" serializer:"as_date"`
 
 	AvatarType *AvatarType `gorm:"type:enum('external','avatar1','avatar2', 'avatar3', 'avatar4', 'avatar5', 'avatar6', 'avatar7', 'avatar8', 'avatar9', 'avatar10');" serializer:"short"`
 	AvatarID   *uuid.UUID  `gorm:"type:char(36);uniqueIndex" serializer:"short"`
@@ -69,10 +69,17 @@ func (u *User) ToJson(options SerializeUserOptions) map[string]interface{} {
 		}
 
 		fieldName := string_utils.ToSnakeCase(field.Name)
-		if !slices.Contains([]string{"safe", "short"}, flags[0]) && flags[0] != "" {
+		if !slices.Contains([]string{"safe", "short", "as_date"}, flags[0]) && flags[0] != "" {
 			fieldName = flags[0]
 		}
-		out[fieldName] = val.Field(i).Interface()
+		jsonValue := val.Field(i).Interface()
+		if slices.Contains(flags, "as_date") {
+			t, ok := jsonValue.(time.Time)
+			if ok {
+				jsonValue = t.Format(time.DateOnly)
+			}
+		}
+		out[fieldName] = jsonValue
 	}
 	privileges := make([]string, len(u.UserPrivileges))
 	for i, userPrivilege := range u.UserPrivileges {
