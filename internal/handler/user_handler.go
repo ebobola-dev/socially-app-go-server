@@ -20,6 +20,7 @@ import (
 	minio_service "github.com/ebobola-dev/socially-app-go-server/internal/service/minio"
 	image_util "github.com/ebobola-dev/socially-app-go-server/internal/util/image"
 	"github.com/ebobola-dev/socially-app-go-server/internal/util/nullable"
+	"github.com/ebobola-dev/socially-app-go-server/internal/util/short_flag"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -67,9 +68,10 @@ func (h *userHandler) GetById(c *fiber.Ctx) error {
 	}
 	userId := uuid.MustParse(payload.UserId)
 	tx := middleware.GetTX(c)
+	short := short_flag.FromFiberCtx(c)
 	user, get_err := s.UserRepository.GetByID(tx, userId, repository.GetUserOptions{
 		IncludeDeleted:     true,
-		CountSubscriptions: true,
+		CountSubscriptions: !short,
 	})
 	if get_err != nil && !errors.Is(get_err, gorm.ErrRecordNotFound) {
 		return get_err
@@ -77,7 +79,8 @@ func (h *userHandler) GetById(c *fiber.Ctx) error {
 		return common_error.NewRecordNotFoundErr("User")
 	}
 	return c.JSON(user.ToJson(model.SerializeUserOptions{
-		Safe: user.ID == middleware.GetUserId(c),
+		Safe:  user.ID == middleware.GetUserId(c),
+		Short: short,
 	}))
 }
 
